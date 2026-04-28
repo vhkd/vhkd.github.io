@@ -1,1 +1,429 @@
-Hello World
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Zhang Kai 的个人主页与博客 | 持续学习 保持好奇">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f1e8">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
+  <meta property="og:title" content="Zhang Kai | 张凯">
+  <meta property="og:description" content="后端工程师，主要关注 Java 后端、大数据、鸿蒙与嵌入式。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://zhangkai.me/">
+  <title>Zhang Kai 的个人主页与博客 | 持续学习 保持好奇</title>
+  <style>
+    :root {
+      --bg: #f6f1e8;
+      --paper: rgba(255, 252, 246, 0.84);
+      --ink: #182018;
+      --muted: #667065;
+      --line: rgba(24, 32, 24, 0.12);
+      --accent: #9b5a3c;
+      --display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      --body: "Aptos", "Trebuchet MS", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "Courier New", monospace;
+      --radius: 24px;
+      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111614;
+        --paper: rgba(26, 33, 29, 0.84);
+        --ink: #e8ece5;
+        --muted: #9ca79e;
+        --line: rgba(232, 236, 229, 0.12);
+        --accent: #d39a7b;
+        --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: var(--body);
+      line-height: 1.7;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(155, 90, 60, 0.12), transparent 22rem),
+        linear-gradient(180deg, color-mix(in srgb, var(--bg) 75%, white), var(--bg));
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    a:hover { color: var(--accent); }
+
+    .shell {
+      width: min(860px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -5rem;
+      padding: 0.7rem 1rem;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      transition: top 160ms ease;
+    }
+
+    .skip-link:focus { top: 1rem; }
+
+    .site-header {
+      padding: 18px 0;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--paper) 88%, transparent);
+    }
+
+    .brand {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .nav-links a {
+      padding: 0.5rem 0.75rem;
+      border-radius: 999px;
+    }
+
+    .nav-links a:hover {
+      background: rgba(155, 90, 60, 0.08);
+      color: var(--ink);
+    }
+
+    .hero {
+      padding: 80px 0 64px;
+    }
+
+    .eyebrow {
+      margin-bottom: 1rem;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+      font-family: var(--display);
+      font-size: clamp(2rem, 6vw, 3.4rem);
+      line-height: 0.9;
+      letter-spacing: -0.06em;
+    }
+
+    .lead {
+      max-width: 720px;
+      margin-bottom: 1.4rem;
+      color: var(--muted);
+      font-size: clamp(1.08rem, 2vw, 1.22rem);
+    }
+
+    .intro {
+      max-width: 720px;
+      margin-bottom: 2rem;
+      font-size: 1.02rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0.72rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--paper) 82%, transparent);
+      font-weight: 700;
+      transition: transform 180ms ease, background 180ms ease;
+    }
+
+      .button:hover {
+      transform: translateY(-2px);
+      background: color-mix(in srgb, var(--paper) 96%, white 4%);
+    }
+
+    .section {
+      padding: 0 0 56px;
+    }
+
+    .section-head {
+      margin-bottom: 1rem;
+    }
+
+    .section-kicker {
+      margin-bottom: 0.7rem;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .section h2 {
+      margin-bottom: 0.7rem;
+      font-family: var(--display);
+      font-size: clamp(2rem, 6vw, 3.4rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .section-copy {
+      max-width: 720px;
+      color: var(--muted);
+    }
+
+    .panel {
+      padding: 1.4rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .focus-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      margin-top: 1rem;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0.35rem 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(246, 241, 232, 0.74);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    .post-list {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .post-card {
+      padding: 1.2rem 1.3rem;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: color-mix(in srgb, var(--paper) 86%, transparent);
+      transition: transform 180ms ease, border-color 180ms ease;
+    }
+
+    .post-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(155, 90, 60, 0.28);
+    }
+
+    .post-meta {
+      margin-bottom: 0.6rem;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .post-card h3 {
+      margin-bottom: 0.45rem;
+      font-size: 1.35rem;
+      line-height: 1.15;
+    }
+
+    .post-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+    }
+
+    .contact {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .site-footer {
+      padding: 8px 0 38px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+    }
+
+    @media (max-width: 720px) {
+      .nav {
+        align-items: flex-start;
+        border-radius: 22px;
+        flex-direction: column;
+      }
+
+      .hero {
+        padding: 44px 0 48px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳转到正文</a>
+
+  <header class="site-header shell">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="/">ZhangKai的个人主页与博客</a>
+      <div class="nav-links">
+        <a href="#about">关于</a>
+        <a href="#blog">博客</a>
+        <a href="#contact">联系</a>
+        <a href="blog.html">归档</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" class="shell">
+    <section class="hero">
+      <p class="eyebrow">Based in Jinan · 后端工程师 / 独立开发者</p>
+      <h1>Zhang Kai | 张凯</h1>
+      <p class="lead">
+        后端工程师，早期主要从事 C# .NET 后端开发，现在以 Java 后端开发为主，
+        同时持续关注 AI 相关技术栈。
+      </p>
+      <p class="intro">
+        这里主要放两类内容：一类是和后端开发相关的长期积累，另一类是我在学习AI、
+        鸿蒙和嵌入式时留下的阶段性记录。页面尽量保持简单，写作比装饰更重要。
+      </p>
+      <p class="intro" style="color: var(--muted); margin-top: -0.8rem;">
+        诞生于一九九八，梦想是开个网吧。代码跑通，机器也别趴。
+      </p>
+      <div class="actions">
+        <a class="button" href="blog.html">查看博客</a>
+        <a class="button" href="https://github.com/vhkd" target="_blank" rel="noreferrer">GitHub</a>
+        <a class="button" href="mailto:me@zhangkai.me">me@zhangkai.me</a>
+      </div>
+    </section>
+
+    <section class="section" id="about" aria-labelledby="about-title">
+      <div class="section-head">
+        <p class="section-kicker">关于</p>
+        <h2 id="about-title">主要做后端，也愿意往系统更外侧多看一点。</h2>
+      </div>
+      <div class="panel">
+        <p>
+          现在的工作重心主要在 Java 后端，平时更关心服务设计、接口边界、数据流转和工程可维护性。
+          早期做过 C# .NET 后端，所以对不同技术栈之间的迁移、协作和实际取舍也会比较敏感。
+        </p>
+        <p>
+          除了后端本身，我也一直在补大数据相关的内容，同时对鸿蒙和嵌入式这种更靠近系统与设备侧的方向保留兴趣。
+          这部分内容后面会慢慢整理成博客，而不是只停留在零散的资料和仓库链接里。
+        </p>
+        <div class="focus-list" aria-label="关注方向">
+          <span class="tag">Java 后端</span>
+          <span class="tag">大数据</span>
+          <span class="tag">鸿蒙</span>
+          <span class="tag">嵌入式</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="blog" aria-labelledby="blog-title">
+      <div class="section-head">
+        <p class="section-kicker">博客</p>
+        <h2 id="blog-title">先把值得写下来的东西慢慢写出来。</h2>
+        <p class="section-copy">
+          先从后端和大数据相关的话题开始，后面再逐步补到鸿蒙和嵌入式方向。
+        </p>
+      </div>
+      <div class="post-list">
+        <a class="post-card" href="posts/java-backend-service-evolution.html">
+          <p class="post-meta">2026-04-28 · Java 后端</p>
+          <h3>从功能可用到服务稳定：Java 后端项目里更值得关注的几个问题</h3>
+          <p>写一些我现在看后端服务时更在意的东西，比如边界、异常、日志，以及系统为什么会慢慢变重。</p>
+        </a>
+        <a class="post-card" href="posts/from-dotnet-to-java.html">
+          <p class="post-meta">2024-03-07 · 后端随笔</p>
+          <h3>从 .NET 到 Java：切换后端技术栈时，我更在意什么</h3>
+          <p>不去争论语言优劣，只谈切换技术栈之后，工程习惯和问题处理方式到底变了什么。</p>
+        </a>
+        <a class="post-card" href="posts/big-data-learning-path.html">
+          <p class="post-meta">2023-06-15 · 大数据</p>
+          <h3>如果后端工程师要开始接触大数据，应该先建立什么认知</h3>
+          <p>站在后端工程师的角度，梳理刚开始接触大数据时，最应该先建立的那部分认知。</p>
+        </a>
+      </div>
+      <div class="actions" style="margin-top: 1.2rem;">
+        <a class="button" href="blog.html">查看全部文章</a>
+      </div>
+    </section>
+
+    <section class="section" id="contact" aria-labelledby="contact-title">
+      <div class="section-head">
+        <p class="section-kicker">联系</p>
+        <h2 id="contact-title">联系方式不多，够用就行。</h2>
+      </div>
+      <div class="panel">
+        <p>
+          GitHub 用来放公开代码，邮箱用来联系。这个站点本身就负责把内容慢慢积累起来。
+        </p>
+        <div class="contact">
+          <a class="button" href="https://github.com/vhkd" target="_blank" rel="noreferrer">github.com/vhkd</a>
+          <a class="button" href="mailto:me@zhangkai.me">me@zhangkai.me</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer shell">
+    <span>© 2026 zhangkai.me</span>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="从 .NET 到 Java：切换后端技术栈时，我更在意什么。">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbf8f2">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
+  <title>从 .NET 到 Java | Zhang Kai</title>
+  <style>
+    :root {
+      --bg: #fbf8f2;
+      --ink: #182018;
+      --muted: #667065;
+      --line: rgba(24, 32, 24, 0.12);
+      --accent: #9b5a3c;
+      --display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      --body: "Aptos", "Trebuchet MS", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "Courier New", monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111614;
+        --ink: #e8ece5;
+        --muted: #9ca79e;
+        --line: rgba(232, 236, 229, 0.12);
+        --accent: #d39a7b;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 84% 8%, rgba(155, 90, 60, 0.1), transparent 20rem),
+        linear-gradient(180deg, color-mix(in srgb, var(--bg) 75%, white), var(--bg));
+      font-family: var(--body);
+      line-height: 1.8;
+    }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: var(--accent); }
+    .shell { width: min(760px, calc(100% - 32px)); margin: 0 auto; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 20px 0;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .topbar a {
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.58);
+    }
+    article { padding: 28px 0 64px; }
+    .meta {
+      margin-bottom: 1rem;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    h1, h2, p { margin-top: 0; }
+    h1 {
+      margin-bottom: 1rem;
+      font-family: var(--display);
+      font-size: clamp(2.8rem, 9vw, 5.4rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+    }
+    .lead {
+      margin-bottom: 2rem;
+      color: var(--muted);
+      font-size: 1.12rem;
+    }
+    h2 {
+      margin-top: 2.2rem;
+      margin-bottom: 0.75rem;
+      font-size: 1.6rem;
+      line-height: 1.15;
+    }
+    footer {
+      padding: 12px 0 40px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+    }
+  </style>
+</head>
+<body>
+  <header class="shell topbar">
+    <a href="../blog.html">返回博客</a>
+    <a href="../">返回主页</a>
+  </header>
+
+  <main class="shell">
+    <article>
+      <p class="meta">2026-04-27 · 后端随笔</p>
+      <h1>从 .NET 到 Java：切换后端技术栈时，我更在意什么</h1>
+      <p class="lead">
+        从 C# .NET 后端转到 Java 后端之后，我越来越觉得，技术栈切换真正难适应的地方，并不是语法或者框架本身，而是整套做事方式的变化。表面上看只是换了工具，实际上你会慢慢发现，自己是在用另一套工程习惯去理解项目、组织代码和排查问题。
+      </p>
+
+      <p>
+        如果只看语言层面，两边其实有很多相通的东西。分层、依赖注入、接口设计、异步处理，这些思路本身并不陌生。真正让我感受到差异的，是生态里默认的约定，以及团队在日常开发里如何把这些约定变成一种稳定的工作方式。很多以前在 .NET 里已经形成的经验，到了 Java 里并没有失效，只是会换一种外形出现。
+      </p>
+
+      <p>
+        刚接触新栈的时候，人很容易把注意力放在“这个注解怎么用”“这个框架怎么配”上，但做久了以后会发现，这些只是最表层的适应。真正要重新建立的是一整套工程感觉。比如项目规模一上来，依赖怎么管，配置怎么拆，日志怎么统一，服务之间怎么约定接口，出了线上问题要先看哪一层，这些东西对开发体验的影响，往往比某段语法写起来顺不顺手更直接。
+      </p>
+
+      <p>
+        我后来越来越觉得，技术栈切换最值得关注的地方，是你如何重新组织已有经验。很多在 .NET 里积累的东西，比如怎么控制边界、怎么处理异常、怎么把服务写得更容易维护，放到 Java 里依然成立。变化的只是生态工具、默认实践和团队的协作方式。也就是说，切换并不意味着把过去全部推倒，而更像是把原来的经验拆开，再按照新的环境重新拼起来。
+      </p>
+
+      <p>
+        这种变化在排障时尤其明显。不同生态会把你引向不同的问题入口，有的更依赖某些日志习惯，有的更强调监控指标，有的在中间件和线程模型上本来就更复杂一些。真正决定你是否适应新栈的，往往也不是能不能把业务代码写出来，而是面对一个线上问题时，你能不能很快找到切入口，知道先看哪里，再往哪里缩小范围。
+      </p>
+
+      <p>
+        所以我现在回头看，从 .NET 到 Java 这个过程，更像一次视角调整。语言和框架当然重要，但它们不是最核心的部分。更重要的是，你有没有把自己对系统的理解能力、对工程质量的敏感度、对问题的拆解方式一起带过来。真正可迁移的能力，始终不是“我会哪一种技术”，而是进入一个新环境之后，能不能尽快看懂它、适应它，再把事情做稳。
+      </p>
+    </article>
+  </main>
+
+  <footer class="shell">
+    <span>Zhang Kai</span>
+  </footer>
+</body>
+</html>

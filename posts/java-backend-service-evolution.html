@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="从功能可用到服务稳定：Java 后端项目里更值得关注的几个问题。">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbf8f2">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
+  <title>从功能可用到服务稳定 | Zhang Kai</title>
+  <style>
+    :root {
+      --bg: #fbf8f2;
+      --ink: #182018;
+      --muted: #667065;
+      --line: rgba(24, 32, 24, 0.12);
+      --accent: #9b5a3c;
+      --display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      --body: "Aptos", "Trebuchet MS", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "Courier New", monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111614;
+        --ink: #e8ece5;
+        --muted: #9ca79e;
+        --line: rgba(232, 236, 229, 0.12);
+        --accent: #d39a7b;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(155, 90, 60, 0.1), transparent 20rem),
+        linear-gradient(180deg, color-mix(in srgb, var(--bg) 75%, white), var(--bg));
+      font-family: var(--body);
+      line-height: 1.8;
+    }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: var(--accent); }
+    .shell { width: min(760px, calc(100% - 32px)); margin: 0 auto; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 20px 0;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .topbar a {
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.58);
+    }
+    article { padding: 28px 0 64px; }
+    .meta {
+      margin-bottom: 1rem;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    h1, h2, p { margin-top: 0; }
+    h1 {
+      margin-bottom: 1rem;
+      font-family: var(--display);
+      font-size: clamp(2.8rem, 9vw, 5.4rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+    }
+    .lead {
+      margin-bottom: 2rem;
+      color: var(--muted);
+      font-size: 1.12rem;
+    }
+    h2 {
+      margin-top: 2.2rem;
+      margin-bottom: 0.75rem;
+      font-size: 1.6rem;
+      line-height: 1.15;
+    }
+    footer {
+      padding: 12px 0 40px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+    }
+  </style>
+</head>
+<body>
+  <header class="shell topbar">
+    <a href="../blog.html">返回博客</a>
+    <a href="../">返回主页</a>
+  </header>
+
+  <main class="shell">
+    <article>
+      <p class="meta">2026-04-28 · Java 后端</p>
+      <h1>从功能可用到服务稳定：Java 后端项目里更值得关注的几个问题</h1>
+      <p class="lead">
+        后端服务刚开始做的时候，目标通常都很直接，接口先通，业务先上线，只要能把当前需求接住，很多问题都会被暂时放过去。真正的分水岭往往出现在进入维护期之后。这个时候再看，会发现最麻烦的往往不是功能少了一点，而是系统出了问题不好查，需求一变就容易牵连一片，时间久了，大家连代码还能不能放心改都会开始犹豫。
+      </p>
+
+      <p>
+        我现在看一个 Java 后端项目，第一反应通常已经不是“这个功能做完没有”，而是它后面会不会越来越重。很多服务在最初几个月里其实都差不多，Controller 里多塞一点逻辑，异常先在本地兜住，日志先打出来再说，这些在当时都很正常，因为目标就是把事情交出去。但服务一旦真正跑起来，开始接外部系统，开始被多人维护，原来那些看上去问题不大的地方，就会慢慢变成排障和迭代时最费时间的部分。
+      </p>
+
+      <p>
+        比如接口边界这件事，刚开始如果没有太在意，后面就很容易一层一层往 Controller 里塞判断。参数校验、业务分支、返回格式、异常转换全混在一起，短期看是快，长期看就不太好动。每次改需求，最怕的不是改动量大，而是你不知道改完之后会不会把别的接口一起带出问题。很多时候，让服务真正稳定下来的不是某一个很复杂的设计，而是你愿不愿意把边界收一收，让每一层只做自己该做的事。
+      </p>
+
+      <p>
+        异常处理也是类似。早期项目里最常见的情况，就是业务逻辑先写通，等遇到报错了再补 `try-catch`。时间一长，错误处理自然就散得到处都是。接口返回不统一，日志信息也拼不齐，线上一旦出问题，就很容易出现“知道错了，但不知道为什么错”的情况。后来我越来越倾向于尽早把异常收敛起来，不是为了显得规范，而是为了给后面的排查留余地。系统错误和业务错误最好在语义上区分开，返回给调用方的内容也尽量稳定，这样问题真的来了，至少不会从最基础的判断开始浪费时间。
+      </p>
+
+      <p>
+        日志也是一样。很多人都知道日志重要，但真正写到项目里时，常常会走向两个极端，要么什么都打，要么什么都不打。前者最后会把日志变成噪声池，后者则是在需要它的时候完全帮不上忙。相比“日志够不够多”，我现在更在意的是它能不能把一次请求的链路串起来，关键参数有没有留下合理的上下文，外部依赖调用失败时有没有足够的信息让人继续往下查。日志不是为了摆在那里，而是为了出问题的时候，能把人从猜测里拉出来。
+      </p>
+
+      <p>
+        还有一些问题表面看和代码没那么直接，比如配置和发布。很多服务线上不稳定，未必是代码本身有多差，而是环境差异不透明、配置改动没被很好管理，或者上线过程本身就缺少确定性。参数命名是否清楚，默认值是不是合理，不同环境之间到底有哪些差异，这些细节平时不显眼，但很容易在系统规模上来以后反过来影响整个服务的可靠性。很多时候，一个后端项目的“稳”，并不是某段业务逻辑写得多漂亮，而是它在真实环境里经不经得住反复运行和反复修改。
+      </p>
+
+      <p>
+        做后端时间长一点之后，注意力会很自然地从“把功能做出来”转向“把系统做得更安静”。所谓安静，不是没有问题，而是出了问题之后你知道从哪里查，改一个地方不会让整个系统都紧张起来，接手的人也不用先猜半天作者当时怎么想的。对我来说，这种可维护性比很多表面上的复杂设计更有价值，这也是我现在看 Java 后端项目时更在意的部分。
+      </p>
+    </article>
+  </main>
+
+  <footer class="shell">
+    <span>Zhang Kai</span>
+  </footer>
+</body>
+</html>
