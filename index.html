@@ -11,6 +11,14 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://zhangkai.me/">
   <title>Zhang Kai 的个人主页与博客 | 持续学习 保持好奇</title>
+  <script>
+    (function () {
+      var savedTheme = localStorage.getItem("theme-preference");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        document.documentElement.setAttribute("data-theme", savedTheme);
+      }
+    })();
+  </script>
   <style>
     :root {
       --bg: #f6f1e8;
@@ -36,6 +44,26 @@
         --accent: #d39a7b;
         --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
       }
+    }
+
+    html[data-theme="light"] {
+      --bg: #f6f1e8;
+      --paper: rgba(255, 252, 246, 0.84);
+      --ink: #182018;
+      --muted: #667065;
+      --line: rgba(24, 32, 24, 0.12);
+      --accent: #9b5a3c;
+      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
+    }
+
+    html[data-theme="dark"] {
+      --bg: #111614;
+      --paper: rgba(26, 33, 29, 0.84);
+      --ink: #e8ece5;
+      --muted: #9ca79e;
+      --line: rgba(232, 236, 229, 0.12);
+      --accent: #d39a7b;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
     }
 
     * { box-sizing: border-box; }
@@ -113,7 +141,27 @@
       border-radius: 999px;
     }
 
+    .theme-toggle {
+      cursor: pointer;
+      color: var(--muted);
+      display: inline-grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--paper) 88%, transparent);
+      font-size: 1rem;
+      line-height: 1;
+    }
+
     .nav-links a:hover {
+      background: rgba(155, 90, 60, 0.08);
+      color: var(--ink);
+    }
+
+    .theme-toggle:hover {
       background: rgba(155, 90, 60, 0.08);
       color: var(--ink);
     }
@@ -174,15 +222,46 @@
       background: color-mix(in srgb, var(--paper) 82%, transparent);
       font-weight: 700;
       transition: transform 180ms ease, background 180ms ease;
+      gap: 0.45rem;
     }
 
-      .button:hover {
+    .button:hover {
       transform: translateY(-2px);
       background: color-mix(in srgb, var(--paper) 96%, white 4%);
     }
 
+    .button-icon {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+    }
+
     .section {
       padding: 0 0 56px;
+    }
+
+    .now-card {
+      margin-bottom: 48px;
+      padding: 1rem 1.2rem;
+      box-shadow: none;
+    }
+
+    .now-card .section-kicker {
+      margin-bottom: 0.45rem;
+      font-size: 0.72rem;
+    }
+
+    .now-card h2 {
+      margin-bottom: 0.4rem;
+      font-size: 1.05rem;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .now-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.96rem;
     }
 
     .section-head {
@@ -326,6 +405,7 @@
         <a href="#blog">博客</a>
         <a href="#contact">联系</a>
         <a href="blog.html">归档</a>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="主题：自动" title="主题：自动">◐</button>
       </div>
     </nav>
   </header>
@@ -345,11 +425,33 @@
       <p class="intro" style="color: var(--muted); margin-top: -0.8rem;">
         诞生于一九九八，梦想是开个网吧。代码跑通，机器也别趴。
       </p>
+      <p class="intro" style="color: var(--muted); margin-top: -1rem; margin-bottom: 1.6rem;">
+        工作日写服务，空下来研究点设备侧的东西。
+      </p>
       <div class="actions">
         <a class="button" href="blog.html">查看博客</a>
-        <a class="button" href="https://github.com/vhkd" target="_blank" rel="noreferrer">GitHub</a>
-        <a class="button" href="mailto:me@zhangkai.me">me@zhangkai.me</a>
+        <a class="button" href="https://github.com/vhkd" target="_blank" rel="noreferrer">
+          <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+            <path d="M12 .5C5.65.5.5 5.66.5 12.02c0 5.09 3.29 9.4 7.86 10.92.57.1.78-.25.78-.56 0-.27-.01-1.17-.02-2.12-3.2.69-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.78 1.2 1.78 1.2 1.03 1.77 2.69 1.26 3.35.97.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.18-3.09-.12-.29-.51-1.47.11-3.06 0 0 .97-.31 3.17 1.18a10.9 10.9 0 0 1 5.77 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.24 2.77.12 3.06.74.8 1.18 1.83 1.18 3.09 0 4.42-2.69 5.39-5.26 5.67.41.35.78 1.04.78 2.11 0 1.53-.01 2.76-.01 3.14 0 .31.2.67.79.56a11.53 11.53 0 0 0 7.84-10.92C23.5 5.66 18.35.5 12 .5Z"/>
+          </svg>
+          GitHub
+        </a>
+        <a class="button" href="mailto:me@zhangkai.me">
+          <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6.75h18v10.5H3z"/>
+            <path d="m4 7.5 8 6 8-6"/>
+          </svg>
+          me@zhangkai.me
+        </a>
       </div>
+    </section>
+
+    <section class="now-card panel" aria-labelledby="now-title">
+      <p class="section-kicker">Now</p>
+      <h2 id="now-title">最近在做什么</h2>
+      <p>
+        最近主要还是围绕 Java 后端做积累，顺手补一些 AI 相关内容，也在把原来散在各处的想法慢慢整理成能读的文章。
+      </p>
     </section>
 
     <section class="section" id="about" aria-labelledby="about-title">
@@ -415,8 +517,19 @@
           GitHub 用来放公开代码，邮箱用来联系。这个站点本身就负责把内容慢慢积累起来。
         </p>
         <div class="contact">
-          <a class="button" href="https://github.com/vhkd" target="_blank" rel="noreferrer">github.com/vhkd</a>
-          <a class="button" href="mailto:me@zhangkai.me">me@zhangkai.me</a>
+          <a class="button" href="https://github.com/vhkd" target="_blank" rel="noreferrer">
+            <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+              <path d="M12 .5C5.65.5.5 5.66.5 12.02c0 5.09 3.29 9.4 7.86 10.92.57.1.78-.25.78-.56 0-.27-.01-1.17-.02-2.12-3.2.69-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.78 1.2 1.78 1.2 1.03 1.77 2.69 1.26 3.35.97.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.69 0-1.26.45-2.29 1.18-3.09-.12-.29-.51-1.47.11-3.06 0 0 .97-.31 3.17 1.18a10.9 10.9 0 0 1 5.77 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.24 2.77.12 3.06.74.8 1.18 1.83 1.18 3.09 0 4.42-2.69 5.39-5.26 5.67.41.35.78 1.04.78 2.11 0 1.53-.01 2.76-.01 3.14 0 .31.2.67.79.56a11.53 11.53 0 0 0 7.84-10.92C23.5 5.66 18.35.5 12 .5Z"/>
+            </svg>
+            github.com/vhkd
+          </a>
+          <a class="button" href="mailto:me@zhangkai.me">
+            <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6.75h18v10.5H3z"/>
+              <path d="m4 7.5 8 6 8-6"/>
+            </svg>
+            me@zhangkai.me
+          </a>
         </div>
       </div>
     </section>
@@ -425,5 +538,48 @@
   <footer class="site-footer shell">
     <span>© 2026 zhangkai.me</span>
   </footer>
+  <script>
+    (function () {
+      var key = "theme-preference";
+      var button = document.getElementById("theme-toggle");
+      if (!button) return;
+      var labels = {
+        system: "主题：自动",
+        dark: "主题：夜间",
+        light: "主题：日间"
+      };
+      var icons = {
+        system: "◐",
+        dark: "☾",
+        light: "☼"
+      };
+      var order = ["system", "dark", "light"];
+      var current = localStorage.getItem(key) || "system";
+
+      function apply(theme) {
+        if (theme === "light" || theme === "dark") {
+          document.documentElement.setAttribute("data-theme", theme);
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+        }
+        button.textContent = icons[theme];
+        button.setAttribute("aria-label", labels[theme]);
+        button.setAttribute("title", labels[theme]);
+      }
+
+      button.addEventListener("click", function () {
+        var index = order.indexOf(current);
+        current = order[(index + 1) % order.length];
+        if (current === "system") {
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, current);
+        }
+        apply(current);
+      });
+
+      apply(current);
+    })();
+  </script>
 </body>
 </html>

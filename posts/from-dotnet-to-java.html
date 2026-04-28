@@ -7,6 +7,14 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbf8f2">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
   <title>从 .NET 到 Java | Zhang Kai</title>
+  <script>
+    (function () {
+      var savedTheme = localStorage.getItem("theme-preference");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        document.documentElement.setAttribute("data-theme", savedTheme);
+      }
+    })();
+  </script>
   <style>
     :root {
       --bg: #fbf8f2;
@@ -26,6 +34,20 @@
         --line: rgba(232, 236, 229, 0.12);
         --accent: #d39a7b;
       }
+    }
+    html[data-theme="light"] {
+      --bg: #fbf8f2;
+      --ink: #182018;
+      --muted: #667065;
+      --line: rgba(24, 32, 24, 0.12);
+      --accent: #9b5a3c;
+    }
+    html[data-theme="dark"] {
+      --bg: #111614;
+      --ink: #e8ece5;
+      --muted: #9ca79e;
+      --line: rgba(232, 236, 229, 0.12);
+      --accent: #d39a7b;
     }
     * { box-sizing: border-box; }
     body {
@@ -55,6 +77,20 @@
       border: 1px solid var(--line);
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.58);
+    }
+    .theme-toggle {
+      cursor: pointer;
+      color: inherit;
+      display: inline-grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.58);
+      font-size: 1rem;
+      line-height: 1;
     }
     article { padding: 28px 0 64px; }
     .meta {
@@ -97,7 +133,10 @@
 <body>
   <header class="shell topbar">
     <a href="../blog.html">返回博客</a>
-    <a href="../">返回主页</a>
+    <div style="display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: flex-end;">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="主题：自动" title="主题：自动">◐</button>
+      <a href="../">返回主页</a>
+    </div>
   </header>
 
   <main class="shell">
@@ -133,5 +172,48 @@
   <footer class="shell">
     <span>Zhang Kai</span>
   </footer>
+  <script>
+    (function () {
+      var key = "theme-preference";
+      var button = document.getElementById("theme-toggle");
+      if (!button) return;
+      var labels = {
+        system: "主题：自动",
+        dark: "主题：夜间",
+        light: "主题：日间"
+      };
+      var icons = {
+        system: "◐",
+        dark: "☾",
+        light: "☼"
+      };
+      var order = ["system", "dark", "light"];
+      var current = localStorage.getItem(key) || "system";
+
+      function apply(theme) {
+        if (theme === "light" || theme === "dark") {
+          document.documentElement.setAttribute("data-theme", theme);
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+        }
+        button.textContent = icons[theme];
+        button.setAttribute("aria-label", labels[theme]);
+        button.setAttribute("title", labels[theme]);
+      }
+
+      button.addEventListener("click", function () {
+        var index = order.indexOf(current);
+        current = order[(index + 1) % order.length];
+        if (current === "system") {
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, current);
+        }
+        apply(current);
+      });
+
+      apply(current);
+    })();
+  </script>
 </body>
 </html>
