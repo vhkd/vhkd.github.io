@@ -18,6 +18,7 @@
   <style>
     :root {
       --bg: #fbf8f2;
+      --paper: rgba(255, 252, 246, 0.84);
       --ink: #182018;
       --muted: #667065;
       --line: rgba(24, 32, 24, 0.12);
@@ -25,29 +26,36 @@
       --display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
       --body: "Aptos", "Trebuchet MS", "PingFang SC", "Hiragino Sans GB", sans-serif;
       --mono: "IBM Plex Mono", "Courier New", monospace;
+      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #111614;
+        --paper: rgba(26, 33, 29, 0.84);
         --ink: #e8ece5;
         --muted: #9ca79e;
         --line: rgba(232, 236, 229, 0.12);
         --accent: #d39a7b;
+        --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
       }
     }
     html[data-theme="light"] {
       --bg: #fbf8f2;
+      --paper: rgba(255, 252, 246, 0.84);
       --ink: #182018;
       --muted: #667065;
       --line: rgba(24, 32, 24, 0.12);
       --accent: #9b5a3c;
+      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
     }
     html[data-theme="dark"] {
       --bg: #111614;
+      --paper: rgba(26, 33, 29, 0.84);
       --ink: #e8ece5;
       --muted: #9ca79e;
       --line: rgba(232, 236, 229, 0.12);
       --accent: #d39a7b;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
     }
     * { box-sizing: border-box; }
     body {
@@ -76,7 +84,7 @@
       padding: 0.65rem 0.85rem;
       border: 1px solid var(--line);
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.58);
+      background: color-mix(in srgb, var(--paper) 84%, transparent);
     }
     .theme-toggle {
       cursor: pointer;
@@ -88,7 +96,7 @@
       padding: 0;
       border: 1px solid var(--line);
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.58);
+      background: color-mix(in srgb, var(--paper) 84%, transparent);
       font-size: 1rem;
       line-height: 1;
     }
@@ -127,6 +135,28 @@
       color: var(--muted);
       font-family: var(--mono);
       font-size: 0.76rem;
+    }
+    @media (max-width: 720px) {
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 8vw, 3.2rem);
+      }
+
+      article {
+        padding: 32px 0 48px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
     }
   </style>
 </head>

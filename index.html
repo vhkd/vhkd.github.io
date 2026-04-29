@@ -205,6 +205,18 @@
       font-size: 1.02rem;
     }
 
+    .hero-quote {
+      max-width: 640px;
+      margin: 0 0 2rem;
+      padding: 1rem 1.4rem;
+      border-left: 3px solid var(--accent);
+      border-radius: 0 12px 12px 0;
+      background: color-mix(in srgb, var(--paper) 60%, transparent);
+      color: var(--muted);
+      font-size: 0.98rem;
+      font-style: italic;
+    }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
@@ -399,7 +411,7 @@
 
   <header class="site-header shell">
     <nav class="nav" aria-label="主导航">
-      <a class="brand" href="/">ZhangKai的个人主页与博客</a>
+      <a class="brand" href="/">ZhangKai.me</a>
       <div class="nav-links">
         <a href="#about">关于</a>
         <a href="#blog">博客</a>
@@ -422,12 +434,10 @@
         这里主要放两类内容：一类是和后端开发相关的长期积累，另一类是我在学习AI、
         鸿蒙和嵌入式时留下的阶段性记录。页面尽量保持简单，写作比装饰更重要。
       </p>
-      <p class="intro" style="color: var(--muted); margin-top: -0.8rem;">
-        诞生于一九九八，梦想是开个网吧。代码跑通，机器也别趴。
-      </p>
-      <p class="intro" style="color: var(--muted); margin-top: -1rem; margin-bottom: 1.6rem;">
+      <blockquote class="hero-quote">
+        诞生于一九九八，梦想是开个网吧。代码跑通，机器也别趴。<br>
         工作日写服务，空下来研究点设备侧的东西。
-      </p>
+      </blockquote>
       <div class="actions">
         <a class="button" href="blog.html">查看博客</a>
         <a class="button" href="https://github.com/vhkd" target="_blank" rel="noreferrer">

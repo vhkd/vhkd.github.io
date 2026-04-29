@@ -85,6 +85,19 @@
 
     a:hover { color: var(--accent); }
 
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -5rem;
+      padding: 0.7rem 1rem;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      transition: top 160ms ease;
+    }
+
+    .skip-link:focus { top: 1rem; }
+
     .shell {
       width: min(860px, calc(100% - 32px));
       margin: 0 auto;
@@ -205,6 +218,8 @@
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#main">跳转到正文</a>
+
   <header class="shell topbar">
     <a href="/">主页</a>
     <div style="display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: flex-end;">
@@ -213,7 +228,7 @@
     </div>
   </header>
 
-  <main class="shell">
+  <main id="main" class="shell">
     <section class="hero">
       <p class="eyebrow">博客归档</p>
       <h1>技术笔记与一些长期会继续写下去的话题。</h1>
