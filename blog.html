@@ -3,14 +3,78 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Zhang Kai 的博客归档，内容围绕 Java 后端、大数据、鸿蒙和嵌入式。">
+  <link rel="canonical" href="https://zhangkai.me/blog.html">
+  <meta name="description" content="张凯的技术博客归档，记录 Java 后端、大数据、分布式、支付系统、鸿蒙与嵌入式方向的实践笔记。">
+  <meta name="author" content="Zhang Kai">
+  <meta name="robots" content="index,follow">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f1e8">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
+  <meta property="og:site_name" content="Zhang Kai">
+  <meta property="og:locale" content="zh_CN">
   <meta property="og:title" content="Zhang Kai | 博客">
-  <meta property="og:description" content="Java 后端、大数据、鸿蒙与嵌入式相关的技术笔记。">
+  <meta property="og:description" content="张凯的技术博客归档，记录 Java 后端、大数据、分布式、支付系统、鸿蒙与嵌入式方向的实践笔记。">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://zhangkai.me/blog.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Zhang Kai | 博客">
+  <meta name="twitter:description" content="张凯的技术博客归档，记录 Java 后端、大数据、分布式、支付系统、鸿蒙与嵌入式方向的实践笔记。">
   <title>Zhang Kai | 博客</title>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  "name": "Zhang Kai 技术博客",
+  "description": "张凯的技术博客归档，记录 Java 后端、大数据、分布式、支付系统、鸿蒙与嵌入式方向的实践笔记。",
+  "url": "https://zhangkai.me/blog.html",
+  "inLanguage": "zh-CN",
+  "author": {
+    "@type": "Person",
+    "name": "Zhang Kai",
+    "url": "https://zhangkai.me",
+    "sameAs": [
+      "https://github.com/vhkd"
+    ]
+  },
+  "blogPost": [
+    {
+      "@type": "BlogPosting",
+      "headline": "从功能可用到服务稳定：Java 后端项目里更值得关注的几个问题",
+      "url": "https://zhangkai.me/posts/java-backend-service-evolution.html",
+      "datePublished": "2026-04-28"
+    },
+    {
+      "@type": "BlogPosting",
+      "headline": "从 .NET 到 Java：切换后端技术栈时，我更在意什么",
+      "url": "https://zhangkai.me/posts/from-dotnet-to-java.html",
+      "datePublished": "2024-03-07"
+    },
+    {
+      "@type": "BlogPosting",
+      "headline": "如果后端工程师要开始接触大数据，应该先建立什么认知",
+      "url": "https://zhangkai.me/posts/big-data-learning-path.html",
+      "datePublished": "2023-06-15"
+    },
+    {
+      "@type": "BlogPosting",
+      "headline": "TCC 分布式事务在支付场景中的实践",
+      "url": "https://zhangkai.me/posts/tcc-distributed-transaction-practice.html",
+      "datePublished": "2025-08-15"
+    },
+    {
+      "@type": "BlogPosting",
+      "headline": "ES 大宽表在订单查询中的设计与优化",
+      "url": "https://zhangkai.me/posts/elasticsearch-large-wide-table.html",
+      "datePublished": "2025-11-20"
+    },
+    {
+      "@type": "BlogPosting",
+      "headline": "记一次线上支付问题的排查过程",
+      "url": "https://zhangkai.me/posts/production-incident-debugging.html",
+      "datePublished": "2026-01-10"
+    }
+  ]
+}
+  </script>
   <script>
     (function () {
       var savedTheme = localStorage.getItem("theme-preference");
@@ -255,6 +319,24 @@
         <p class="meta">2023-06-15 · 大数据</p>
         <h2>如果后端工程师要开始接触大数据，应该先建立什么认知</h2>
         <p>站在后端工程师的角度，梳理刚开始接触大数据时，最应该先建立的那部分认知。</p>
+      </a>
+
+      <a class="post" href="posts/tcc-distributed-transaction-practice.html">
+        <p class="meta">2025-08-15 · 分布式</p>
+        <h2>TCC 分布式事务在支付场景中的实践</h2>
+        <p>结合支付退款场景，讲 TCC 的三阶段流程、空回滚和悬挂问题的实际处理。</p>
+      </a>
+
+      <a class="post" href="posts/elasticsearch-large-wide-table.html">
+        <p class="meta">2025-11-20 · 大数据</p>
+        <h2>ES 大宽表在订单查询中的设计与优化</h2>
+        <p>从实际项目出发，讲如何用 ES 大宽表解决冷热数据分离和复杂查询问题。</p>
+      </a>
+
+      <a class="post" href="posts/production-incident-debugging.html">
+        <p class="meta">2026-01-10 · Java 后端</p>
+        <h2>记一次线上支付问题的排查过程</h2>
+        <p>从退款失败率异常开始，讲线上支付问题的排查思路和方法论。</p>
       </a>
     </section>
   </main>

@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://zhangkai.me/posts/elasticsearch-large-wide-table.html">
+  <meta name="description" content="从实际项目出发，讲订单中心如何用 ES 大宽表解决冷热数据分离和复杂查询问题。">
+  <meta name="author" content="Zhang Kai">
+  <meta name="robots" content="index,follow">
+  <meta property="og:site_name" content="Zhang Kai">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="ES 大宽表在订单查询中的设计与优化 | Zhang Kai">
+  <meta property="og:description" content="从实际项目出发，讲订单中心如何用 ES 大宽表解决冷热数据分离和复杂查询问题。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://zhangkai.me/posts/elasticsearch-large-wide-table.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="ES 大宽表在订单查询中的设计与优化 | Zhang Kai">
+  <meta name="twitter:description" content="从实际项目出发，讲订单中心如何用 ES 大宽表解决冷热数据分离和复杂查询问题。">
+  <meta property="article:published_time" content="2025-11-20">
+  <meta property="article:section" content="大数据">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbf8f2">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
+  <title>ES 大宽表在订单查询中的设计与优化 | Zhang Kai</title>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "name": "ES 大宽表在订单查询中的设计与优化",
+  "description": "从实际项目出发，讲订单中心如何用 ES 大宽表解决冷热数据分离和复杂查询问题。",
+  "url": "https://zhangkai.me/posts/elasticsearch-large-wide-table.html",
+  "inLanguage": "zh-CN",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "Zhang Kai",
+    "url": "https://zhangkai.me"
+  },
+  "headline": "ES 大宽表在订单查询中的设计与优化",
+  "datePublished": "2025-11-20",
+  "dateModified": "2025-11-20",
+  "articleSection": "大数据",
+  "author": {
+    "@type": "Person",
+    "name": "Zhang Kai",
+    "url": "https://zhangkai.me",
+    "sameAs": [
+      "https://github.com/vhkd"
+    ]
+  },
+  "mainEntityOfPage": "https://zhangkai.me/posts/elasticsearch-large-wide-table.html"
+}
+  </script>
+  <script>
+    (function () {
+      var savedTheme = localStorage.getItem("theme-preference");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        document.documentElement.setAttribute("data-theme", savedTheme);
+      }
+    })();
+  </script>
+  <style>
+    :root {
+      --bg: #fbf8f2;
+      --paper: rgba(255, 252, 246, 0.84);
+      --ink: #182018;
+      --muted: #667065;
+      --line: rgba(24, 32, 24, 0.12);
+      --accent: #9b5a3c;
+      --display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      --body: "Aptos", "Trebuchet MS", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "Courier New", monospace;
+      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111614;
+        --paper: rgba(26, 33, 29, 0.84);
+        --ink: #e8ece5;
+        --muted: #9ca79e;
+        --line: rgba(232, 236, 229, 0.12);
+        --accent: #d39a7b;
+        --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+      }
+    }
+    html[data-theme="light"] {
+      --bg: #fbf8f2;
+      --paper: rgba(255, 252, 246, 0.84);
+      --ink: #182018;
+      --muted: #667065;
+      --line: rgba(24, 32, 24, 0.12);
+      --accent: #9b5a3c;
+      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
+    }
+    html[data-theme="dark"] {
+      --bg: #111614;
+      --paper: rgba(26, 33, 29, 0.84);
+      --ink: #e8ece5;
+      --muted: #9ca79e;
+      --line: rgba(232, 236, 229, 0.12);
+      --accent: #d39a7b;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(155, 90, 60, 0.1), transparent 20rem),
+        linear-gradient(180deg, color-mix(in srgb, var(--bg) 75%, white), var(--bg));
+      font-family: var(--body);
+      line-height: 1.8;
+    }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: var(--accent); }
+    .shell { width: min(760px, calc(100% - 32px)); margin: 0 auto; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 20px 0;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .topbar a {
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--paper) 84%, transparent);
+    }
+    .theme-toggle {
+      cursor: pointer;
+      color: inherit;
+      display: inline-grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--paper) 84%, transparent);
+      font-size: 1rem;
+      line-height: 1;
+    }
+    article { padding: 28px 0 64px; }
+    .meta {
+      margin-bottom: 1rem;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      margin-bottom: 1rem;
+      font-family: var(--display);
+      font-size: clamp(2.8rem, 9vw, 5.4rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+    }
+    .lead {
+      margin-bottom: 2rem;
+      color: var(--muted);
+      font-size: 1.12rem;
+    }
+    h2 {
+      margin-top: 2.2rem;
+      margin-bottom: 0.75rem;
+      font-size: 1.6rem;
+      line-height: 1.15;
+    }
+    h3 {
+      margin-top: 1.6rem;
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+    }
+    pre {
+      padding: 1rem 1.2rem;
+      border-radius: 12px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: 0.9em;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      background: rgba(155, 90, 60, 0.08);
+    }
+    pre code {
+      padding: 0;
+      background: none;
+      border-radius: 0;
+    }
+    blockquote {
+      margin: 1.5rem 0;
+      padding: 1rem 1.4rem;
+      border-left: 3px solid var(--accent);
+      border-radius: 0 12px 12px 0;
+      background: color-mix(in srgb, var(--paper) 60%, transparent);
+      color: var(--muted);
+    }
+    ul, ol {
+      padding-left: 1.5rem;
+    }
+    li {
+      margin-bottom: 0.4rem;
+    }
+    strong {
+      color: var(--ink);
+      font-weight: 700;
+    }
+    /* Entry layout styles */
+    .entry-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 0.3rem;
+    }
+    .entry-left {
+      flex: 1;
+      font-weight: 700;
+    }
+    .entry-right {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      white-space: nowrap;
+    }
+    footer {
+      padding: 12px 0 40px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+    }
+    @media (max-width: 720px) {
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+      }
+      h1 {
+        font-size: clamp(2rem, 8vw, 3.2rem);
+      }
+      article {
+        padding: 32px 0 48px;
+      }
+      .entry-row {
+        flex-direction: column;
+        gap: 0;
+      }
+      .entry-right {
+        white-space: normal;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+    }
+    @media print {
+      .topbar { display: none; }
+      body { background: #fff; color: #000; }
+      .shell { width: 100%; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="shell topbar">
+    <a href="../blog.html">返回博客</a>
+    <div style="display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: flex-end;">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="主题：自动" title="主题：自动">◐</button>
+      <a href="../">返回主页</a>
+    </div>
+  </header>
+
+  <main class="shell">
+    <article>
+<p class="meta">2025-11-20 · 大数据</p>
+<h1 id="es-大宽表在订单查询中的设计与优化">ES 大宽表在订单查询中的设计与优化</h1><p>当订单量从每天几万涨到每天几百万的时候，最直观的感受不是接口慢了，而是查询变得越来越复杂。运营要按渠道查，财务要按时间范围查，客服要按用户 ID 反查订单，还有各种组合条件的筛选。这些查询如果都打到关系数据库上，索引设计会变得极其复杂，而且很多查询场景在建表时根本预想不到。</p>
+<p>我们当时的方案是在现有存储之上加一层 ElasticSearch，用大宽表的方式把订单相关的所有信息组装到一起，专门服务查询场景。</p>
+<h2 id="为什么选大宽表">为什么选大宽表</h2><p>订单中心的数据天然就是分散的：订单基本信息在一张表，用户信息在另一张表，商品信息、支付信息、退款信息各自独立存储。这在交易场景下是合理的——写入路径需要高内聚、强一致。但查询场景的需求恰好相反：需要把所有相关信息拉到一起做筛选和排序。</p>
+<p>大宽表的思路就是：把这些分散的信息在写入 ES 之前就组装好，一张索引包含订单相关的所有字段。查询时不需要 JOIN，不需要跨索引聚合，一个请求就能拿到所有需要的数据。</p>
+<p>当然代价也很明显：数据冗余、写入时需要组装、字段变更时需要同步更新索引结构。但对于读多写少的查询场景，这个 trade-off 是值得的。</p>
+<h2 id="写入链路设计">写入链路设计</h2><p>大宽表的数据来自多个业务服务，不能也不应该侵入正常的订单写入流程。我们的做法是通过事件驱动解耦：</p>
+<ol>
+<li>各业务服务在关键操作完成后发送 MQ 消息（订单创建、支付成功、退款完成等）</li>
+<li>消费端订阅这些消息，异步组装完整数据</li>
+<li>组装完成后批量写入 ES</li>
+</ol>
+<p>这里有个关键决策：消息只携带事件类型和主键 ID，不携带完整数据。消费端收到消息后，主动去各服务查询最新数据再组装。这样做的好处是解耦——事件发送方不需要关心数据结构的变化，也不需要维护一个&quot;给 ES 用&quot;的特殊数据格式。</p>
+<h2 id="乱序问题">乱序问题</h2><p>事件驱动架构下，乱序是必然会出现的问题。同一个订单可能在短时间内触发多个事件（创建、支付、发货），如果这些事件被不同消费者乱序处理，最终写入 ES 的数据可能不是最新的。</p>
+<p>我们遇到过一个典型场景：订单先触发了&quot;退款完成&quot;事件，紧接着又触发了&quot;支付成功&quot;事件（对账回调）。如果&quot;支付成功&quot;的消费先完成，ES 里的数据会被覆盖为&quot;已支付&quot;状态，丢失了退款信息。</p>
+<p>解决方案是在消息和 ES 写入之间加一层中间表：</p>
+<ol>
+<li>消息到达后，先写入 SQLServer 的一张事件记录表，包含订单 ID、事件类型、事件时间</li>
+<li>定时任务从中间表读取数据，按订单 ID 聚合，取每个订单的最新状态</li>
+<li>最新状态组装完成后写入 ES</li>
+</ol>
+<p>这个方案牺牲了一些实时性（定时任务的间隔决定了延迟），但彻底解决了乱序问题。在我们的场景下，查询 ES 的用户能接受几秒到十几秒的延迟，这个 trade-off 是合理的。</p>
+<h2 id="索引拆分">索引拆分</h2><p>随着数据量增长，单个 ES 索引会遇到写入积压的问题。ES 的写入性能和索引大小、分片数量、单条文档大小都有关系，当索引文档数超过一定规模后，写入延迟会明显增加。</p>
+<p>我们的做法是按时间拆分索引：每个月一个独立索引，查询时通过别名（alias）聚合多个索引。这样有几个好处：</p>
+<ul>
+<li>热数据（最近几个月）的索引体积小，写入性能好</li>
+<li>历史数据可以转移到性能较低的节点，降低存储成本</li>
+<li>索引结构变更时，只需要在新索引上生效，不影响历史数据</li>
+</ul>
+<p>拆分后，写入积压问题基本解决了。但查询侧需要注意：跨多个索引的聚合查询会变慢，需要在业务层做好分页和范围限制。</p>
+<h2 id="补偿机制">补偿机制</h2><p>异步架构下，消息丢失是不可避免的——虽然概率很低，但在百万级日订单的规模下，每天丢几条消息是正常的。如果没有任何补偿机制，这些丢失的数据会导致 ES 和源数据库不一致。</p>
+<p>我们的做法是双管齐下：</p>
+<ol>
+<li><strong>消息级别的补偿</strong>：每条消息消费成功后，更新一条状态记录。定时任务扫描超时未消费的消息，重新投递。</li>
+<li><strong>全量级别的补偿</strong>：每天凌晨跑一次全量比对任务，从源数据库查出最近一天的订单数据，和 ES 里的数据做 diff，找出不一致的记录并修复。</li>
+</ol>
+<p>第一种处理实时问题，第二种兜底。上线后跑了大半年，大部分不一致都是通过第一种机制自动修复的，第二种偶尔能抓到一些边界情况。</p>
+<h2 id="后置数据使用">后置数据使用</h2><p>大宽表除了服务查询，还有一个意外的收获：它天然就是一个数据归集点。很多后置业务（统计报表、数据分析、风控模型）需要的订单相关数据，在大宽表里都能找到。</p>
+<p>我们在大宽表之上又建了一层数据归集表，专门给业务侧做统计用。这样做的好处是业务方不需要自己去各服务拼数据，直接从归集表取就行，减少了重复建设和数据口径不一致的问题。</p>
+<h2 id="总结">总结</h2><p>ES 大宽表不是什么新技术，但在订单查询这种场景下确实好用。关键的设计决策在于：通过事件驱动解耦写入链路，通过中间表解决乱序问题，通过索引拆分解决写入积压，通过双层补偿保证数据一致性。每个决策都有对应的 trade-off，但在我们的场景下，这些 trade-off 是值得的。</p>
+
+    </article>
+  </main>
+
+  <footer class="shell">
+    <span>Zhang Kai</span>
+  </footer>
+  <script>
+    (function () {
+      var key = "theme-preference";
+      var button = document.getElementById("theme-toggle");
+      if (!button) return;
+      var labels = {
+        system: "主题：自动",
+        dark: "主题：夜间",
+        light: "主题：日间"
+      };
+      var icons = {
+        system: "◐",
+        dark: "☾",
+        light: "☼"
+      };
+      var order = ["system", "dark", "light"];
+      var current = localStorage.getItem(key) || "system";
+
+      function apply(theme) {
+        if (theme === "light" || theme === "dark") {
+          document.documentElement.setAttribute("data-theme", theme);
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+        }
+        button.textContent = icons[theme];
+        button.setAttribute("aria-label", labels[theme]);
+        button.setAttribute("title", labels[theme]);
+      }
+
+      button.addEventListener("click", function () {
+        var index = order.indexOf(current);
+        current = order[(index + 1) % order.length];
+        if (current === "system") {
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, current);
+        }
+        apply(current);
+      });
+
+      apply(current);
+    })();
+  </script>
+</body>
+</html>

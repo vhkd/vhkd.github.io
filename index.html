@@ -3,14 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Zhang Kai 的个人主页与博客 | 持续学习 保持好奇">
+  <link rel="canonical" href="https://zhangkai.me/">
+  <meta name="description" content="张凯的个人主页与技术博客，记录 Java 后端、大数据、AI、鸿蒙与嵌入式相关的工程实践和学习笔记。">
+  <meta name="author" content="Zhang Kai">
+  <meta name="robots" content="index,follow">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f1e8">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
-  <meta property="og:title" content="Zhang Kai | 张凯">
-  <meta property="og:description" content="后端工程师，主要关注 Java 后端、大数据、鸿蒙与嵌入式。">
+  <meta property="og:site_name" content="Zhang Kai">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="Zhang Kai 的个人主页与博客 | 持续学习 保持好奇">
+  <meta property="og:description" content="张凯的个人主页与技术博客，记录 Java 后端、大数据、AI、鸿蒙与嵌入式相关的工程实践和学习笔记。">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://zhangkai.me/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Zhang Kai 的个人主页与博客 | 持续学习 保持好奇">
+  <meta name="twitter:description" content="张凯的个人主页与技术博客，记录 Java 后端、大数据、AI、鸿蒙与嵌入式相关的工程实践和学习笔记。">
   <title>Zhang Kai 的个人主页与博客 | 持续学习 保持好奇</title>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ProfilePage",
+  "name": "Zhang Kai | 张凯",
+  "description": "张凯的个人主页与技术博客，记录 Java 后端、大数据、AI、鸿蒙与嵌入式相关的工程实践和学习笔记。",
+  "url": "https://zhangkai.me/",
+  "inLanguage": "zh-CN",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "Zhang Kai",
+    "url": "https://zhangkai.me"
+  },
+  "mainEntity": {
+    "@type": "Person",
+    "name": "张凯",
+    "alternateName": "Zhang Kai",
+    "jobTitle": "后端开发工程师",
+    "url": "https://zhangkai.me",
+    "sameAs": [
+      "https://github.com/vhkd"
+    ]
+  }
+}
+  </script>
   <script>
     (function () {
       var savedTheme = localStorage.getItem("theme-preference");
@@ -510,6 +543,21 @@
           <p class="post-meta">2023-06-15 · 大数据</p>
           <h3>如果后端工程师要开始接触大数据，应该先建立什么认知</h3>
           <p>站在后端工程师的角度，梳理刚开始接触大数据时，最应该先建立的那部分认知。</p>
+        </a>
+        <a class="post-card" href="posts/tcc-distributed-transaction-practice.html">
+          <p class="post-meta">2025-08-15 · 分布式</p>
+          <h3>TCC 分布式事务在支付场景中的实践</h3>
+          <p>结合支付退款场景，讲 TCC 的三阶段流程、空回滚和悬挂问题的实际处理。</p>
+        </a>
+        <a class="post-card" href="posts/elasticsearch-large-wide-table.html">
+          <p class="post-meta">2025-11-20 · 大数据</p>
+          <h3>ES 大宽表在订单查询中的设计与优化</h3>
+          <p>从实际项目出发，讲如何用 ES 大宽表解决冷热数据分离和复杂查询问题。</p>
+        </a>
+        <a class="post-card" href="posts/production-incident-debugging.html">
+          <p class="post-meta">2026-01-10 · Java 后端</p>
+          <h3>记一次线上支付问题的排查过程</h3>
+          <p>从退款失败率异常开始，讲线上支付问题的排查思路和方法论。</p>
         </a>
       </div>
       <div class="actions" style="margin-top: 1.2rem;">

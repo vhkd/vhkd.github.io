@@ -1,0 +1,10 @@
+{
+  "name": "vhkd.github.io",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js"
+  },
+  "dependencies": {
+    "marked": "^15.0.0"
+  }
+}

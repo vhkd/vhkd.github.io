@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://zhangkai.me/posts/tcc-distributed-transaction-practice.html">
+  <meta name="description" content="结合支付退款场景，讲 TCC 分布式事务的三阶段流程、实际踩坑和常见问题处理。">
+  <meta name="author" content="Zhang Kai">
+  <meta name="robots" content="index,follow">
+  <meta property="og:site_name" content="Zhang Kai">
+  <meta property="og:locale" content="zh_CN">
+  <meta property="og:title" content="TCC 分布式事务在支付场景中的实践 | Zhang Kai">
+  <meta property="og:description" content="结合支付退款场景，讲 TCC 分布式事务的三阶段流程、实际踩坑和常见问题处理。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://zhangkai.me/posts/tcc-distributed-transaction-practice.html">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="TCC 分布式事务在支付场景中的实践 | Zhang Kai">
+  <meta name="twitter:description" content="结合支付退款场景，讲 TCC 分布式事务的三阶段流程、实际踩坑和常见问题处理。">
+  <meta property="article:published_time" content="2025-08-15">
+  <meta property="article:section" content="分布式">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbf8f2">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
+  <title>TCC 分布式事务在支付场景中的实践 | Zhang Kai</title>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "name": "TCC 分布式事务在支付场景中的实践",
+  "description": "结合支付退款场景，讲 TCC 分布式事务的三阶段流程、实际踩坑和常见问题处理。",
+  "url": "https://zhangkai.me/posts/tcc-distributed-transaction-practice.html",
+  "inLanguage": "zh-CN",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "Zhang Kai",
+    "url": "https://zhangkai.me"
+  },
+  "headline": "TCC 分布式事务在支付场景中的实践",
+  "datePublished": "2025-08-15",
+  "dateModified": "2025-08-15",
+  "articleSection": "分布式",
+  "author": {
+    "@type": "Person",
+    "name": "Zhang Kai",
+    "url": "https://zhangkai.me",
+    "sameAs": [
+      "https://github.com/vhkd"
+    ]
+  },
+  "mainEntityOfPage": "https://zhangkai.me/posts/tcc-distributed-transaction-practice.html"
+}
+  </script>
+  <script>
+    (function () {
+      var savedTheme = localStorage.getItem("theme-preference");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        document.documentElement.setAttribute("data-theme", savedTheme);
+      }
+    })();
+  </script>
+  <style>
+    :root {
+      --bg: #fbf8f2;
+      --paper: rgba(255, 252, 246, 0.84);
+      --ink: #182018;
+      --muted: #667065;
+      --line: rgba(24, 32, 24, 0.12);
+      --accent: #9b5a3c;
+      --display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      --body: "Aptos", "Trebuchet MS", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --mono: "IBM Plex Mono", "Courier New", monospace;
+      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111614;
+        --paper: rgba(26, 33, 29, 0.84);
+        --ink: #e8ece5;
+        --muted: #9ca79e;
+        --line: rgba(232, 236, 229, 0.12);
+        --accent: #d39a7b;
+        --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+      }
+    }
+    html[data-theme="light"] {
+      --bg: #fbf8f2;
+      --paper: rgba(255, 252, 246, 0.84);
+      --ink: #182018;
+      --muted: #667065;
+      --line: rgba(24, 32, 24, 0.12);
+      --accent: #9b5a3c;
+      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
+    }
+    html[data-theme="dark"] {
+      --bg: #111614;
+      --paper: rgba(26, 33, 29, 0.84);
+      --ink: #e8ece5;
+      --muted: #9ca79e;
+      --line: rgba(232, 236, 229, 0.12);
+      --accent: #d39a7b;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(155, 90, 60, 0.1), transparent 20rem),
+        linear-gradient(180deg, color-mix(in srgb, var(--bg) 75%, white), var(--bg));
+      font-family: var(--body);
+      line-height: 1.8;
+    }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: var(--accent); }
+    .shell { width: min(760px, calc(100% - 32px)); margin: 0 auto; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 20px 0;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .topbar a {
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--paper) 84%, transparent);
+    }
+    .theme-toggle {
+      cursor: pointer;
+      color: inherit;
+      display: inline-grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--paper) 84%, transparent);
+      font-size: 1rem;
+      line-height: 1;
+    }
+    article { padding: 28px 0 64px; }
+    .meta {
+      margin-bottom: 1rem;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      margin-bottom: 1rem;
+      font-family: var(--display);
+      font-size: clamp(2.8rem, 9vw, 5.4rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+    }
+    .lead {
+      margin-bottom: 2rem;
+      color: var(--muted);
+      font-size: 1.12rem;
+    }
+    h2 {
+      margin-top: 2.2rem;
+      margin-bottom: 0.75rem;
+      font-size: 1.6rem;
+      line-height: 1.15;
+    }
+    h3 {
+      margin-top: 1.6rem;
+      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+    }
+    pre {
+      padding: 1rem 1.2rem;
+      border-radius: 12px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+    code {
+      font-family: var(--mono);
+      font-size: 0.9em;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      background: rgba(155, 90, 60, 0.08);
+    }
+    pre code {
+      padding: 0;
+      background: none;
+      border-radius: 0;
+    }
+    blockquote {
+      margin: 1.5rem 0;
+      padding: 1rem 1.4rem;
+      border-left: 3px solid var(--accent);
+      border-radius: 0 12px 12px 0;
+      background: color-mix(in srgb, var(--paper) 60%, transparent);
+      color: var(--muted);
+    }
+    ul, ol {
+      padding-left: 1.5rem;
+    }
+    li {
+      margin-bottom: 0.4rem;
+    }
+    strong {
+      color: var(--ink);
+      font-weight: 700;
+    }
+    /* Entry layout styles */
+    .entry-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 0.3rem;
+    }
+    .entry-left {
+      flex: 1;
+      font-weight: 700;
+    }
+    .entry-right {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      white-space: nowrap;
+    }
+    footer {
+      padding: 12px 0 40px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+    }
+    @media (max-width: 720px) {
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+      }
+      h1 {
+        font-size: clamp(2rem, 8vw, 3.2rem);
+      }
+      article {
+        padding: 32px 0 48px;
+      }
+      .entry-row {
+        flex-direction: column;
+        gap: 0;
+      }
+      .entry-right {
+        white-space: normal;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+    }
+    @media print {
+      .topbar { display: none; }
+      body { background: #fff; color: #000; }
+      .shell { width: 100%; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="shell topbar">
+    <a href="../blog.html">返回博客</a>
+    <div style="display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: flex-end;">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="主题：自动" title="主题：自动">◐</button>
+      <a href="../">返回主页</a>
+    </div>
+  </header>
+
+  <main class="shell">
+    <article>
+<p class="meta">2025-08-15 · 分布式</p>
+<h1 id="tcc-分布式事务在支付场景中的实践">TCC 分布式事务在支付场景中的实践</h1><p>做支付系统的人大概都绕不开一个问题：当一个业务操作需要同时更新多个服务的数据时，怎么保证它们要么一起成功，要么一起失败。在退款场景里，这个问题尤其明显——退款操作本身要记录状态，后置的余额更新也要同步完成，中间任何一环出问题，都会导致数据不一致。</p>
+<p>我第一次真正面对这个问题，是在做收退款模块重构的时候。当时退款和余额更新是通过消息队列异步解耦的，理论上最终会一致，但实际上经常出现退款成功但余额没更新、或者余额更新了但退款状态还是&quot;处理中&quot;的情况。运维同事每周要花好几个小时去人工核对和修复。</p>
+<p>后来我们引入了 TCC 模式来解决这个问题。</p>
+<h2 id="tcc-是什么">TCC 是什么</h2><p>TCC 是 Try-Confirm-Cancel 的缩写，核心思路是把一个分布式事务拆成三个阶段：</p>
+<ol>
+<li><strong>Try</strong>：预留资源。不真正执行业务，只是检查条件并锁定资源。比如退款场景里，Try 阶段会检查账户余额是否足够、退款单是否合法，并冻结对应的金额。</li>
+<li><strong>Confirm</strong>：确认执行。当所有参与者的 Try 阶段都成功后，统一执行 Confirm。这个阶段才是真正扣减余额、更新退款状态。</li>
+<li><strong>Cancel</strong>：回滚。如果任何一个参与者的 Try 失败，所有已经 Try 成功的参与者都要执行 Cancel，释放预留的资源。</li>
+</ol>
+<p>和传统的 2PC（两阶段提交）相比，TCC 的优势在于它是业务层面的补偿，而不是依赖数据库锁。这意味着它不会长时间占用数据库连接，更适合高并发场景。</p>
+<h2 id="实际接入时遇到的问题">实际接入时遇到的问题</h2><p>看起来很清晰的三阶段，真正落地时会踩不少坑。</p>
+<h3 id="空回滚">空回滚</h3><p>这是最常见的问题。当一个请求因为网络超时没有到达 Try 阶段，但调用方认为失败了，直接发起 Cancel。这时候 Cancel 收到的是一个从来没有 Try 过的请求。</p>
+<p>我们的处理方式是在 Cancel 阶段增加判断：如果发现对应事务 ID 没有 Try 记录，直接返回成功，不执行任何业务逻辑。同时要记录这个状态，防止后续真正的 Try 请求到达时被错误执行。</p>
+<h3 id="悬挂">悬挂</h3><p>悬挂和空回滚是伴生问题。场景是这样的：Cancel 先到（因为网络延迟），执行了空回滚；然后 Try 才到，这时候如果 Try 继续执行，就会导致资源被永久冻结——因为 Cancel 已经标记为完成了，不会再有后续的 Confirm 或 Cancel 来释放。</p>
+<p>解决方法是在 Try 阶段也检查一下：如果发现这个事务 ID 已经被 Cancel 过，就拒绝执行 Try。</p>
+<h3 id="幂等">幂等</h3><p>Confirm 和 Cancel 都可能因为网络重试被多次调用。每个接口都必须保证幂等——同样的请求执行多次，结果和执行一次完全一样。我们的做法是用事务 ID 做唯一键，执行前检查是否已经处理过。</p>
+<h2 id="和-saga-的对比">和 Saga 的对比</h2><p>TCC 之外，另一个常见的分布式事务方案是 Saga。两者的核心区别在于：</p>
+<ul>
+<li><strong>TCC</strong> 是预先检查、预留资源，失败概率更低，但接入成本高，每个服务都要实现 Try/Confirm/Cancel 三个接口</li>
+<li><strong>Saga</strong> 是直接执行，失败后按反向顺序补偿，接入简单，但补偿逻辑可能失败，需要额外处理</li>
+</ul>
+<p>在支付这种对资金一致性要求很高的场景，我更倾向 TCC。因为 Try 阶段的预留机制相当于多了一道防线，可以在真正扣款之前就把大部分异常拦截住。Saga 的补偿虽然简单，但在涉及资金的场景里，&quot;先扣了再退回去&quot;的风险比&quot;先冻住了再确认&quot;要大得多。</p>
+<p>不过 TCC 的代价也很明显。每个参与的服务都要改造成三个接口，业务逻辑被拆得更细，代码量和测试用例都会增加。如果只是普通的业务操作，Saga 通常是更务实的选择。</p>
+<h2 id="总结">总结</h2><p>TCC 不是银弹，但在支付场景下，它提供了一个可靠的思路：把&quot;做一件事&quot;变成&quot;先占个位、再确认、出错就退&quot;。实际落地时，空回滚、悬挂、幂等这三个问题一定要在设计阶段就考虑清楚，否则上线后的运维成本会很高。</p>
+<p>另外，TCC 框架的选择也很重要。我们当时用的是自研的轻量实现，如果现在重新做，可能会考虑 Seata 这类开源方案，社区支持和文档会更完善一些。</p>
+
+    </article>
+  </main>
+
+  <footer class="shell">
+    <span>Zhang Kai</span>
+  </footer>
+  <script>
+    (function () {
+      var key = "theme-preference";
+      var button = document.getElementById("theme-toggle");
+      if (!button) return;
+      var labels = {
+        system: "主题：自动",
+        dark: "主题：夜间",
+        light: "主题：日间"
+      };
+      var icons = {
+        system: "◐",
+        dark: "☾",
+        light: "☼"
+      };
+      var order = ["system", "dark", "light"];
+      var current = localStorage.getItem(key) || "system";
+
+      function apply(theme) {
+        if (theme === "light" || theme === "dark") {
+          document.documentElement.setAttribute("data-theme", theme);
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+        }
+        button.textContent = icons[theme];
+        button.setAttribute("aria-label", labels[theme]);
+        button.setAttribute("title", labels[theme]);
+      }
+
+      button.addEventListener("click", function () {
+        var index = order.indexOf(current);
+        current = order[(index + 1) % order.length];
+        if (current === "system") {
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, current);
+        }
+        apply(current);
+      });
+
+      apply(current);
+    })();
+  </script>
+</body>
+</html>
