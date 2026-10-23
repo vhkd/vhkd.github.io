@@ -4,35 +4,40 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="canonical" href="https://zhangkai.me/posts/big-data-learning-path.html">
-  <meta name="description" content="站在后端工程师的角度，梳理开始接触大数据时需要先建立的核心认知，包括数据链路、批流处理和工程边界。">
+  <meta name="description" content="以订单日报和实时看板为例，理解采集、口径、事件时间、迟到数据与重跑，而不是先记组件清单。">
   <meta name="author" content="Zhang Kai">
   <meta name="robots" content="index,follow">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbf8f2">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
   <meta property="og:site_name" content="Zhang Kai">
   <meta property="og:locale" content="zh_CN">
-  <meta property="og:title" content="后端工程师如何开始接触大数据 | Zhang Kai">
-  <meta property="og:description" content="站在后端工程师的角度，梳理开始接触大数据时需要先建立的核心认知，包括数据链路、批流处理和工程边界。">
+  <meta property="og:title" content="从订单日报入手，理解一条数据链路 | Zhang Kai">
+  <meta property="og:description" content="以订单日报和实时看板为例，理解采集、口径、事件时间、迟到数据与重跑，而不是先记组件清单。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://zhangkai.me/posts/big-data-learning-path.html">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="后端工程师如何开始接触大数据 | Zhang Kai">
-  <meta name="twitter:description" content="站在后端工程师的角度，梳理开始接触大数据时需要先建立的核心认知，包括数据链路、批流处理和工程边界。">
+  <meta name="twitter:title" content="从订单日报入手，理解一条数据链路 | Zhang Kai">
+  <meta name="twitter:description" content="以订单日报和实时看板为例，理解采集、口径、事件时间、迟到数据与重跑，而不是先记组件清单。">
   <meta property="article:published_time" content="2023-06-15">
+  <meta property="article:modified_time" content="2026-10-23">
   <meta property="article:section" content="大数据">
-  <title>后端工程师如何开始接触大数据 | Zhang Kai</title>
+  <meta name="theme-color" content="#f6f1e8">
+  <title>从订单日报入手，理解一条数据链路 | Zhang Kai</title>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "headline": "如果后端工程师要开始接触大数据，应该先建立什么认知",
-  "description": "站在后端工程师的角度，梳理开始接触大数据时需要先建立的核心认知，包括数据链路、批流处理和工程边界。",
+  "name": "从订单日报入手，理解一条数据链路",
+  "description": "以订单日报和实时看板为例，理解采集、口径、事件时间、迟到数据与重跑，而不是先记组件清单。",
   "url": "https://zhangkai.me/posts/big-data-learning-path.html",
-  "mainEntityOfPage": "https://zhangkai.me/posts/big-data-learning-path.html",
-  "datePublished": "2023-06-15",
-  "dateModified": "2023-06-15",
-  "articleSection": "大数据",
   "inLanguage": "zh-CN",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "Zhang Kai",
+    "url": "https://zhangkai.me"
+  },
+  "headline": "从订单日报入手，理解一条数据链路",
+  "datePublished": "2023-06-15",
+  "dateModified": "2026-10-23",
+  "articleSection": "大数据",
   "author": {
     "@type": "Person",
     "name": "Zhang Kai",
@@ -41,250 +46,48 @@
       "https://github.com/vhkd"
     ]
   },
-  "isPartOf": {
-    "@type": "Blog",
-    "name": "Zhang Kai 技术博客",
-    "url": "https://zhangkai.me/blog.html"
-  }
+  "mainEntityOfPage": "https://zhangkai.me/posts/big-data-learning-path.html"
 }
   </script>
-  <script>
-    (function () {
-      var savedTheme = localStorage.getItem("theme-preference");
-      if (savedTheme === "light" || savedTheme === "dark") {
-        document.documentElement.setAttribute("data-theme", savedTheme);
-      }
-    })();
-  </script>
-  <style>
-    :root {
-      --bg: #fbf8f2;
-      --paper: rgba(255, 252, 246, 0.84);
-      --ink: #182018;
-      --muted: #667065;
-      --line: rgba(24, 32, 24, 0.12);
-      --accent: #9b5a3c;
-      --display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-      --body: "Aptos", "Trebuchet MS", "PingFang SC", "Hiragino Sans GB", sans-serif;
-      --mono: "IBM Plex Mono", "Courier New", monospace;
-      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #111614;
-        --paper: rgba(26, 33, 29, 0.84);
-        --ink: #e8ece5;
-        --muted: #9ca79e;
-        --line: rgba(232, 236, 229, 0.12);
-        --accent: #d39a7b;
-        --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-      }
-    }
-    html[data-theme="light"] {
-      --bg: #fbf8f2;
-      --paper: rgba(255, 252, 246, 0.84);
-      --ink: #182018;
-      --muted: #667065;
-      --line: rgba(24, 32, 24, 0.12);
-      --accent: #9b5a3c;
-      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
-    }
-    html[data-theme="dark"] {
-      --bg: #111614;
-      --paper: rgba(26, 33, 29, 0.84);
-      --ink: #e8ece5;
-      --muted: #9ca79e;
-      --line: rgba(232, 236, 229, 0.12);
-      --accent: #d39a7b;
-      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at 14% 10%, rgba(155, 90, 60, 0.1), transparent 20rem),
-        linear-gradient(180deg, color-mix(in srgb, var(--bg) 75%, white), var(--bg));
-      font-family: var(--body);
-      line-height: 1.8;
-    }
-    a { color: inherit; text-decoration: none; }
-    a:hover { color: var(--accent); }
-    .shell { width: min(760px, calc(100% - 32px)); margin: 0 auto; }
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 20px 0;
-      font-family: var(--mono);
-      font-size: 0.76rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    .topbar a {
-      padding: 0.65rem 0.85rem;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--paper) 84%, transparent);
-    }
-    .theme-toggle {
-      cursor: pointer;
-      color: inherit;
-      display: inline-grid;
-      place-items: center;
-      width: 40px;
-      height: 40px;
-      padding: 0;
-      border: 1px solid var(--line);
-      border-radius: 50%;
-      background: color-mix(in srgb, var(--paper) 84%, transparent);
-      font-size: 1rem;
-      line-height: 1;
-    }
-    article { padding: 28px 0 64px; }
-    .meta {
-      margin-bottom: 1rem;
-      color: var(--accent);
-      font-family: var(--mono);
-      font-size: 0.76rem;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-    h1, h2, p { margin-top: 0; }
-    h1 {
-      margin-bottom: 1rem;
-      font-family: var(--display);
-      font-size: clamp(2.8rem, 9vw, 5.4rem);
-      line-height: 0.92;
-      letter-spacing: -0.06em;
-    }
-    .lead {
-      margin-bottom: 2rem;
-      color: var(--muted);
-      font-size: 1.12rem;
-    }
-    h2 {
-      margin-top: 2.2rem;
-      margin-bottom: 0.75rem;
-      font-size: 1.6rem;
-      line-height: 1.15;
-    }
-    footer {
-      padding: 12px 0 40px;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-family: var(--mono);
-      font-size: 0.76rem;
-    }
-    @media (max-width: 720px) {
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.6rem;
-      }
 
-      h1 {
-        font-size: clamp(2rem, 8vw, 3.2rem);
-      }
-
-      article {
-        padding: 32px 0 48px;
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        scroll-behavior: auto !important;
-        transition-duration: 1ms !important;
-      }
-    }
-  </style>
+  <script src="../assets/theme.js"></script>
+  <link rel="stylesheet" href="../assets/site.css">
 </head>
-<body>
+<body class="site-post">
+  <a class="skip-link" href="#main">跳转到正文</a>
   <header class="shell topbar">
-    <a href="../blog.html">返回博客</a>
-    <div style="display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: flex-end;">
+    <a href="../blog.html">全部文章</a>
+    <div class="topbar-links">
+      <a href="../">主页</a>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="主题：自动" title="主题：自动">◐</button>
-      <a href="../">返回主页</a>
     </div>
   </header>
 
-  <main class="shell">
+  <main id="main" class="shell" tabindex="-1">
     <article>
-      <p class="meta">2023-06-15 · 大数据</p>
-      <h1>如果后端工程师要开始接触大数据，应该先建立什么认知</h1>
-      <p class="lead">
-        后端工程师开始接触大数据时，最容易出现的一种状态，就是先被一串组件名字淹没。看起来每个名词都重要，每个框架都像必须学，但如果一上来就按这种方式进入，通常学得很快，也忘得很快。相比之下，我更倾向于先把问题看清楚，再去理解技术栈为什么会长成现在这样。
-      </p>
+<p class="meta"><time datetime="2023-06-15">2023-06-15</time> · 大数据 · 更新于 <time datetime="2026-10-23">2026-10-23</time></p>
+<h1 id="从订单日报入手理解一条数据链路">从订单日报入手，理解一条数据链路</h1><p>假设需要给运营做一张日报：按渠道统计昨天支付成功的订单数和金额。这个练习不需要一开始就部署一套大数据平台，先用数据库查询和小批量样本，就能遇到许多真正需要理解的问题。</p>
+<h2 id="先确定昨天支付成功的意思">先确定“昨天支付成功”的意思</h2><p>按订单创建时间统计，会漏掉前天创建、昨天支付的订单。按支付时间统计，还需要明确时区，以及边界是否使用左闭右开区间。退款是在支付日报中回减，还是放入独立退款报表，也属于业务口径。</p>
+<p>金额要确认币种、单位和精度。多次支付尝试中只能计入满足规则的成功记录，不能直接数支付流水行数。否则 SQL 跑得再快，结果也可能不对。</p>
+<p>先写出几个边界样本：跨日支付、重复通知、部分退款、跨时区交易。每次调整计算方式，都用这组样本核对口径。</p>
+<h2 id="再画出数据经过哪里">再画出数据经过哪里</h2><p>一条最小链路可以是：业务数据库 → 增量采集 → 明细层 → 按渠道汇总 → 报表查询。</p>
+<p>每一段都要回答两个问题：处理到哪里了，失败后从哪里继续。采集可以使用变更日志，也可以在有限场景下用更新时间窗口拉取；后者需要处理同时间戳记录、事务提交延迟和重叠窗口，不能只保存“最后一行的时间”就认为不会漏。</p>
+<p>明细层保留订单业务键和变更版本，便于去重及重算。只保存汇总数字，后面发现统计规则有误时，就很难解释差额来自哪笔订单。</p>
+<h2 id="把日报改成实时看板会多出什么问题">把日报改成实时看板，会多出什么问题</h2><p>日报可以等一批数据到齐后计算，实时看板则需要持续更新。此时要区分事件发生时间和系统收到事件的时间。</p>
+<p>举一个时间示例：23:59 支付的订单，00:02 才同步到计算链路。按到达时间分组会算到第二天，按支付时间分组则应修正前一天的数据。</p>
+<p>流处理里的 watermark 用于表达事件时间推进情况，并配合窗口判断何时输出结果。它不能保证之后绝无迟到事件；超出允许迟到范围的数据，仍需要明确的侧路处理、补算或更正策略。</p>
+<p>因此，“实时结果”往往需要说明是否暂定，以及何时完成核对。窗口结束就永远不改，和允许历史结果修正，是两种不同的产品约定。</p>
+<h2 id="用重跑检验链路而不是只看第一次成功">用重跑检验链路，而不是只看第一次成功</h2><p>把同一批输入处理两次，订单数是否翻倍？从中间位点重启后，会不会遗漏一段数据？修改退款口径后，能否只重算受影响的日期？</p>
+<p>这些问题决定了主键、去重、位点和输出提交方式。框架提供的检查点或 exactly-once 能力有适用边界；如果外部输出没有事务或幂等支持，不能只凭打开一个配置就宣称端到端只算一次。</p>
+<h2 id="最后再选工具">最后再选工具</h2><p>当数据量和时效要求允许时，定时 SQL 或简单批任务可能已经够用。需要处理变更流、复杂窗口和持续状态时，再评估 Kafka、Flink 等组件，并给出延迟、吞吐、恢复时间和维护成本的目标。</p>
+<p>一个有用的入门成果是：日报数字可以追溯到订单，重复输入不会重复统计，任务中断可以恢复，迟到订单有明确去向。把这条小链路做完整，后面学习组件时就知道自己要验证什么。</p>
 
-      <p>
-        如果平时主要做业务后端，日常关注的重点通常是接口、事务、缓存、数据库、服务治理，很多问题本质上都是围绕单次请求展开的。可一旦把视角转向大数据，思路就会慢慢变掉。你开始关心的不是某个请求是否足够快，而是数据量起来之后该怎么接、怎么放、怎么算，以及这条链路到底是服务于离线分析，还是服务于实时反馈。
-      </p>
-
-      <p>
-        所以我觉得最先要建立的，不是组件清单，而是数据链路意识。数据从哪里来，中间经过了哪些采集、清洗、同步和存储步骤，最终又被谁消费，这条线如果脑子里没有一张基本的图，后面学再多框架也会显得零散。很多技术看起来不一样，本质上解决的其实都是链路里的某一段问题。先知道问题落在哪，再去看工具，就不容易一直停留在“背名词”的阶段。
-      </p>
-
-      <p>
-        另一个很重要的变化，是要慢慢接受大数据场景里的时间观念和后端服务并不一样。做普通业务系统时，很多时候你关心的是一次调用有没有及时返回，事务有没有一致，接口有没有稳定。但在大数据里，很多任务天然就是面向批次、面向窗口、面向吞吐去设计的。与此同时，实时处理又会把问题拉回到延迟、连续计算和状态管理上来。也就是说，同样是“处理数据”，背后的约束条件可能完全不同。
-      </p>
-
-      <p>
-        这也是为什么我不太认同“先把所有常见组件过一遍”的学习方式。那样看起来覆盖很全，实际上很难形成真正的理解。更合适的切入点，通常还是从具体场景出发，比如日志采集、离线报表、数据同步、实时指标，或者消息流上的处理需求。只要先有一个问题背景，很多原本抽象的概念就会变得更容易落地。
-      </p>
-
-      <p>
-        对后端工程师来说，大数据并不是一套完全割裂的新世界，它更像是把“数据怎么被处理、怎么被利用”这件事放到了更大的规模和更长的链路里。先把这个差别意识到，再去接触具体技术，通常会更稳。这样学到最后，留下来的不会只是一堆零散名词，而是一种对数据系统整体结构的理解。
-      </p>
     </article>
   </main>
 
   <footer class="shell">
     <span>Zhang Kai</span>
   </footer>
-  <script>
-    (function () {
-      var key = "theme-preference";
-      var button = document.getElementById("theme-toggle");
-      if (!button) return;
-      var labels = {
-        system: "主题：自动",
-        dark: "主题：夜间",
-        light: "主题：日间"
-      };
-      var icons = {
-        system: "◐",
-        dark: "☾",
-        light: "☼"
-      };
-      var order = ["system", "dark", "light"];
-      var current = localStorage.getItem(key) || "system";
 
-      function apply(theme) {
-        if (theme === "light" || theme === "dark") {
-          document.documentElement.setAttribute("data-theme", theme);
-        } else {
-          document.documentElement.removeAttribute("data-theme");
-        }
-        button.textContent = icons[theme];
-        button.setAttribute("aria-label", labels[theme]);
-        button.setAttribute("title", labels[theme]);
-      }
-
-      button.addEventListener("click", function () {
-        var index = order.indexOf(current);
-        current = order[(index + 1) % order.length];
-        if (current === "system") {
-          localStorage.removeItem(key);
-        } else {
-          localStorage.setItem(key, current);
-        }
-        apply(current);
-      });
-
-      apply(current);
-    })();
-  </script>
 </body>
 </html>

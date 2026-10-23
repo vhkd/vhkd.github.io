@@ -17,8 +17,9 @@ function parseFrontmatter(text) {
   if (!match) return { meta: {}, content: text };
   const meta = {};
   for (const line of match[1].split('\n')) {
-    const m = line.match(/^(\w+)\s*:\s*"?(.*?)"?\s*$/);
-    if (m) meta[m[1]] = m[2];
+    const m = line.match(/^(\w+)\s*:\s*(.*?)\s*$/);
+    if (!m || Object.hasOwn(meta, m[1])) throw new Error(`Invalid metadata: ${line}`);
+    meta[m[1]] = m[2].replace(/^"(.*)"$/, '$1');
   }
   return { meta, content: match[2] };
 }
@@ -27,6 +28,7 @@ function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
@@ -74,6 +76,7 @@ function seoTags(page) {
   if (page.type === 'blog') {
     if (page.date) {
       tags.push(`<meta property="article:published_time" content="${escapeHtml(page.date)}">`);
+      tags.push(`<meta property="article:modified_time" content="${escapeHtml(page.updated || page.date)}">`);
     }
     if (page.category) {
       tags.push(`<meta property="article:section" content="${escapeHtml(page.category)}">`);
@@ -105,7 +108,7 @@ function structuredData(page) {
       '@type': 'BlogPosting',
       headline: page.title,
       datePublished: page.date,
-      dateModified: page.date,
+      dateModified: page.updated || page.date,
       articleSection: page.category,
       author: {
         '@type': 'Person',
@@ -186,11 +189,17 @@ const renderer = {
     return `<h${depth} id="${slug}">${text}</h${depth}>`;
   },
   code({ text, lang }) {
-    return `<pre><code class="language-${lang || ''}">${text}</code></pre>`;
+    const language = (lang || '').split(/\s+/)[0];
+    const className = language ? ` class="language-${escapeHtml(language)}"` : '';
+    return `<pre><code${className}>${escapeHtml(text)}</code></pre>\n`;
   }
 };
 
 marked.use({ renderer });
+
+function renderMarkdown(content) {
+  return marked.parse(processContainers(content));
+}
 
 // --- HTML template ---
 function htmlTemplate(page) {
@@ -201,243 +210,22 @@ function htmlTemplate(page) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   ${seoTags(page)}
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbf8f2">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
+  <meta name="theme-color" content="#f6f1e8">
   <title>${escapeHtml(fullTitle)}</title>
   <script type="application/ld+json">
 ${jsonLd(structuredData(page))}
   </script>
-  <script>
-    (function () {
-      var savedTheme = localStorage.getItem("theme-preference");
-      if (savedTheme === "light" || savedTheme === "dark") {
-        document.documentElement.setAttribute("data-theme", savedTheme);
-      }
-    })();
-  </script>
-  <style>
-    :root {
-      --bg: #fbf8f2;
-      --paper: rgba(255, 252, 246, 0.84);
-      --ink: #182018;
-      --muted: #667065;
-      --line: rgba(24, 32, 24, 0.12);
-      --accent: #9b5a3c;
-      --display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-      --body: "Aptos", "Trebuchet MS", "PingFang SC", "Hiragino Sans GB", sans-serif;
-      --mono: "IBM Plex Mono", "Courier New", monospace;
-      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #111614;
-        --paper: rgba(26, 33, 29, 0.84);
-        --ink: #e8ece5;
-        --muted: #9ca79e;
-        --line: rgba(232, 236, 229, 0.12);
-        --accent: #d39a7b;
-        --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-      }
-    }
-    html[data-theme="light"] {
-      --bg: #fbf8f2;
-      --paper: rgba(255, 252, 246, 0.84);
-      --ink: #182018;
-      --muted: #667065;
-      --line: rgba(24, 32, 24, 0.12);
-      --accent: #9b5a3c;
-      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
-    }
-    html[data-theme="dark"] {
-      --bg: #111614;
-      --paper: rgba(26, 33, 29, 0.84);
-      --ink: #e8ece5;
-      --muted: #9ca79e;
-      --line: rgba(232, 236, 229, 0.12);
-      --accent: #d39a7b;
-      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at 12% 8%, rgba(155, 90, 60, 0.1), transparent 20rem),
-        linear-gradient(180deg, color-mix(in srgb, var(--bg) 75%, white), var(--bg));
-      font-family: var(--body);
-      line-height: 1.8;
-    }
-    a { color: inherit; text-decoration: none; }
-    a:hover { color: var(--accent); }
-    .shell { width: min(760px, calc(100% - 32px)); margin: 0 auto; }
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 20px 0;
-      font-family: var(--mono);
-      font-size: 0.76rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    .topbar a {
-      padding: 0.65rem 0.85rem;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--paper) 84%, transparent);
-    }
-    .theme-toggle {
-      cursor: pointer;
-      color: inherit;
-      display: inline-grid;
-      place-items: center;
-      width: 40px;
-      height: 40px;
-      padding: 0;
-      border: 1px solid var(--line);
-      border-radius: 50%;
-      background: color-mix(in srgb, var(--paper) 84%, transparent);
-      font-size: 1rem;
-      line-height: 1;
-    }
-    article { padding: 28px 0 64px; }
-    .meta {
-      margin-bottom: 1rem;
-      color: var(--accent);
-      font-family: var(--mono);
-      font-size: 0.76rem;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-    h1, h2, h3, p { margin-top: 0; }
-    h1 {
-      margin-bottom: 1rem;
-      font-family: var(--display);
-      font-size: clamp(2.8rem, 9vw, 5.4rem);
-      line-height: 0.92;
-      letter-spacing: -0.06em;
-    }
-    .lead {
-      margin-bottom: 2rem;
-      color: var(--muted);
-      font-size: 1.12rem;
-    }
-    h2 {
-      margin-top: 2.2rem;
-      margin-bottom: 0.75rem;
-      font-size: 1.6rem;
-      line-height: 1.15;
-    }
-    h3 {
-      margin-top: 1.6rem;
-      margin-bottom: 0.5rem;
-      font-size: 1.2rem;
-    }
-    pre {
-      padding: 1rem 1.2rem;
-      border-radius: 12px;
-      background: var(--paper);
-      border: 1px solid var(--line);
-      overflow-x: auto;
-      font-family: var(--mono);
-      font-size: 0.88rem;
-      line-height: 1.6;
-    }
-    code {
-      font-family: var(--mono);
-      font-size: 0.9em;
-      padding: 0.15em 0.4em;
-      border-radius: 4px;
-      background: rgba(155, 90, 60, 0.08);
-    }
-    pre code {
-      padding: 0;
-      background: none;
-      border-radius: 0;
-    }
-    blockquote {
-      margin: 1.5rem 0;
-      padding: 1rem 1.4rem;
-      border-left: 3px solid var(--accent);
-      border-radius: 0 12px 12px 0;
-      background: color-mix(in srgb, var(--paper) 60%, transparent);
-      color: var(--muted);
-    }
-    ul, ol {
-      padding-left: 1.5rem;
-    }
-    li {
-      margin-bottom: 0.4rem;
-    }
-    strong {
-      color: var(--ink);
-      font-weight: 700;
-    }
-    /* Entry layout styles */
-    .entry-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 1rem;
-      margin-bottom: 0.3rem;
-    }
-    .entry-left {
-      flex: 1;
-      font-weight: 700;
-    }
-    .entry-right {
-      color: var(--muted);
-      font-family: var(--mono);
-      font-size: 0.88rem;
-      white-space: nowrap;
-    }
-    footer {
-      padding: 12px 0 40px;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-family: var(--mono);
-      font-size: 0.76rem;
-    }
-    @media (max-width: 720px) {
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.6rem;
-      }
-      h1 {
-        font-size: clamp(2rem, 8vw, 3.2rem);
-      }
-      article {
-        padding: 32px 0 48px;
-      }
-      .entry-row {
-        flex-direction: column;
-        gap: 0;
-      }
-      .entry-right {
-        white-space: normal;
-      }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        scroll-behavior: auto !important;
-        transition-duration: 1ms !important;
-      }
-    }
-    @media print {
-      .topbar { display: none; }
-      body { background: #fff; color: #000; }
-      .shell { width: 100%; max-width: none; }
-    }
-  </style>
+
+  <script src="../assets/theme.js"></script>
+  <link rel="stylesheet" href="../assets/site.css">
 </head>
-<body>
+<body class="site-post">
+  <a class="skip-link" href="#main">跳转到正文</a>
   <header class="shell topbar">
     ${page.navLinks}
   </header>
 
-  <main class="shell">
+  <main id="main" class="shell" tabindex="-1">
     <article>
 ${page.body}
     </article>
@@ -446,169 +234,129 @@ ${page.body}
   <footer class="shell">
     <span>Zhang Kai</span>
   </footer>
-  <script>
-    (function () {
-      var key = "theme-preference";
-      var button = document.getElementById("theme-toggle");
-      if (!button) return;
-      var labels = {
-        system: "主题：自动",
-        dark: "主题：夜间",
-        light: "主题：日间"
-      };
-      var icons = {
-        system: "◐",
-        dark: "☾",
-        light: "☼"
-      };
-      var order = ["system", "dark", "light"];
-      var current = localStorage.getItem(key) || "system";
 
-      function apply(theme) {
-        if (theme === "light" || theme === "dark") {
-          document.documentElement.setAttribute("data-theme", theme);
-        } else {
-          document.documentElement.removeAttribute("data-theme");
-        }
-        button.textContent = icons[theme];
-        button.setAttribute("aria-label", labels[theme]);
-        button.setAttribute("title", labels[theme]);
-      }
-
-      button.addEventListener("click", function () {
-        var index = order.indexOf(current);
-        current = order[(index + 1) % order.length];
-        if (current === "system") {
-          localStorage.removeItem(key);
-        } else {
-          localStorage.setItem(key, current);
-        }
-        apply(current);
-      });
-
-      apply(current);
-    })();
-  </script>
 </body>
 </html>`;
 }
 
-// --- Build a single markdown file ---
-function buildFile(mdPath, type) {
-  const raw = fs.readFileSync(mdPath, 'utf8');
-  const { meta, content } = parseFrontmatter(raw);
+function validDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || '') &&
+    Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+}
 
-  // Process custom containers before markdown parsing
-  let processed = processContainers(content);
-
-  // Convert markdown to HTML
-  const body = marked.parse(processed);
-
-  const basename = path.basename(mdPath, '.md');
-  const title = meta.title || basename;
-  const description = meta.description || title;
-
-  const navLinks = `<a href="../blog.html">返回博客</a>
-    <div style="display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: flex-end;">
-      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="主题：自动" title="主题：自动">◐</button>
-      <a href="../">返回主页</a>
-    </div>`;
-  const outPath = path.join(path.dirname(mdPath), basename + '.html');
-
-  // Add meta line for blog posts
-  let fullBody = body;
-  if (type === 'blog' && meta.date) {
-    const category = meta.category ? ` · ${meta.category}` : '';
-    fullBody = `<p class="meta">${meta.date}${category}</p>\n${body}`;
-  }
-
-  const html = htmlTemplate({
-    title,
-    description,
-    body: fullBody,
-    navLinks,
-    path: path.relative(path.resolve(__dirname, '..'), outPath),
-    type,
-    date: meta.date,
-    category: meta.category
+function readPosts(root) {
+  const postsDir = path.join(root, 'posts');
+  const posts = fs.readdirSync(postsDir).filter(file => file.endsWith('.md')).map(file => {
+    const { meta, content } = parseFrontmatter(fs.readFileSync(path.join(postsDir, file), 'utf8'));
+    for (const key of ['title', 'date', 'category', 'description']) {
+      if (!meta[key]) throw new Error(`${file}: missing ${key}`);
+    }
+    if (!validDate(meta.date) || (meta.updated && (!validDate(meta.updated) || meta.updated < meta.date))) {
+      throw new Error(`${file}: invalid publication/update date`);
+    }
+    if (meta.featured && !/^[1-9]\d*$/.test(meta.featured)) throw new Error(`${file}: invalid featured rank`);
+    const headings = marked.lexer(content).filter(token => token.type === 'heading' && token.depth === 1);
+    if (headings.length !== 1 || headings[0].text !== meta.title) {
+      throw new Error(`${file}: expected a single H1 matching title`);
+    }
+    return { ...meta, content, path: `posts/${file.slice(0, -3)}.html`, type: 'blog' };
   });
-  fs.writeFileSync(outPath, html, 'utf8');
-  console.log(`  ${path.relative(process.cwd(), mdPath)} → ${path.relative(process.cwd(), outPath)}`);
+  const ranks = posts.filter(post => post.featured).map(post => post.featured);
+  if (new Set(ranks).size !== ranks.length) throw new Error('Featured ranks must be unique');
+  return posts.sort((a, b) => b.date.localeCompare(a.date) || a.path.localeCompare(b.path));
+}
+
+function buildPost(post, root) {
+  const published = `<time datetime="${post.date}">${post.date}</time>`;
+  const updated = post.updated && post.updated !== post.date
+    ? ` · 更新于 <time datetime="${post.updated}">${post.updated}</time>` : '';
+  const body = `<p class="meta">${published} · ${escapeHtml(post.category)}${updated}</p>\n${renderMarkdown(post.content)}`;
+  const navLinks = `<a href="../blog.html">全部文章</a>
+    <div class="topbar-links">
+      <a href="../">主页</a>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="主题：自动" title="主题：自动">◐</button>
+    </div>`;
+  fs.writeFileSync(path.join(root, post.path), htmlTemplate({ ...post, body, navLinks }), 'utf8');
+  console.log(`  ${post.path}`);
+}
+
+function renderCard(post, home) {
+  const heading = home ? 'h3' : 'h2';
+  return `        <a class="${home ? 'post-card' : 'post'}" href="${escapeHtml(post.path)}">
+          <p class="${home ? 'post-meta' : 'meta'}"><time datetime="${post.date}">${post.date}</time> · ${escapeHtml(post.category)}</p>
+          <${heading}>${escapeHtml(post.title)}</${heading}>
+          <p>${escapeHtml(post.description)}</p>
+        </a>`;
+}
+
+function replaceBlock(html, name, content) {
+  const start = `<!-- posts:${name}:start -->`;
+  const end = `<!-- posts:${name}:end -->`;
+  const left = html.indexOf(start);
+  const right = html.indexOf(end);
+  if (left === -1 || right < left || html.indexOf(start, left + 1) !== -1 || html.indexOf(end, right + 1) !== -1) {
+    throw new Error(`Missing or duplicate generated block: ${name}`);
+  }
+  const indent = name === 'featured' ? '        ' : name === 'archive' ? '      ' : '  ';
+  return html.slice(0, left + start.length) + '\n' + content + '\n' + indent + html.slice(right);
+}
+
+function landingPages(root, posts) {
+  const featured = posts.filter(post => post.featured)
+    .sort((a, b) => Number(a.featured) - Number(b.featured)).slice(0, 3);
+  const index = replaceBlock(fs.readFileSync(path.join(root, 'index.html'), 'utf8'),
+    'featured', featured.map(post => renderCard(post, true)).join('\n'));
+  let blog = replaceBlock(fs.readFileSync(path.join(root, 'blog.html'), 'utf8'),
+    'archive', posts.map(post => renderCard(post, false)).join('\n'));
+  const data = {
+    '@context': 'https://schema.org', '@type': 'Blog', name: `${SITE.name} 技术博客`,
+    description: '张凯的全部技术文章，按发表时间排列。主题包括后端开发、事务与数据链路。',
+    url: toSiteUrl('blog.html'), inLanguage: SITE.language,
+    author: { '@type': 'Person', name: SITE.author, url: SITE.origin, sameAs: [SITE.github] },
+    blogPost: posts.map(post => ({
+      '@type': 'BlogPosting', headline: post.title, url: toSiteUrl(post.path),
+      datePublished: post.date, dateModified: post.updated || post.date
+    }))
+  };
+  blog = replaceBlock(blog, 'structured-data', `  <script type="application/ld+json">\n${jsonLd(data)}\n  </script>`);
+  return { 'index.html': index, 'blog.html': blog };
 }
 
 function collectHtmlFiles(dir, root, files = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name === '.git' || entry.name === 'node_modules' || entry.name.startsWith('.')) {
-      continue;
-    }
-
+    if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      collectHtmlFiles(fullPath, root, files);
-    } else if (entry.isFile() && entry.name.endsWith('.html')) {
-      files.push(path.relative(root, fullPath));
-    }
+    if (entry.isDirectory()) collectHtmlFiles(fullPath, root, files);
+    else if (entry.isFile() && entry.name.endsWith('.html')) files.push(path.relative(root, fullPath));
   }
   return files;
 }
 
-function sitemapPriority(pagePath) {
-  if (pagePath === 'index.html') return '1.0';
-  if (pagePath === 'blog.html') return '0.8';
-  if (pagePath.startsWith('posts/')) return '0.7';
-  return '0.5';
-}
-
-function buildSitemap(root) {
+function buildSitemap(root, posts) {
+  const dates = new Map(posts.map(post => [post.path, post.updated || post.date]));
+  const score = file => file === 'index.html' ? 0 : file === 'blog.html' ? 1 : 2;
   const urls = collectHtmlFiles(root, root)
-    .sort((a, b) => {
-      const score = (file) => (file === 'index.html' ? 0 : file === 'blog.html' ? 1 : file.startsWith('posts/') ? 2 : 3);
-      return score(a) - score(b) || a.localeCompare(b);
-    })
-    .map((file) => {
-      const stat = fs.statSync(path.join(root, file));
-      return `  <url>
-    <loc>${escapeXml(toSiteUrl(file))}</loc>
-    <lastmod>${stat.mtime.toISOString().slice(0, 10)}</lastmod>
-    <priority>${sitemapPriority(file)}</priority>
-  </url>`;
+    .sort((a, b) => score(a) - score(b) || a.localeCompare(b))
+    .map(file => {
+      // A checkout/build timestamp is not evidence of a content edit.
+      const lastmod = dates.has(file) ? `\n    <lastmod>${dates.get(file)}</lastmod>` : '';
+      const priority = file === 'index.html' ? '1.0' : file === 'blog.html' ? '0.8' : '0.7';
+      return `  <url>\n    <loc>${escapeXml(toSiteUrl(file))}</loc>${lastmod}\n    <priority>${priority}</priority>\n  </url>`;
     });
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join('\n')}
-</urlset>
-`;
-  fs.writeFileSync(path.join(root, 'sitemap.xml'), xml, 'utf8');
-  console.log('  sitemap.xml');
+  fs.writeFileSync(path.join(root, 'sitemap.xml'),
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`, 'utf8');
 }
 
-function buildRobots(root) {
-  const robots = `User-agent: *
-Allow: /
-
-Sitemap: ${SITE.origin}/sitemap.xml
-`;
-  fs.writeFileSync(path.join(root, 'robots.txt'), robots, 'utf8');
-  console.log('  robots.txt');
+function buildSite(root = path.resolve(__dirname, '..')) {
+  const posts = readPosts(root);
+  // Validate source metadata and landing-page markers before writing outputs.
+  const pages = landingPages(root, posts);
+  for (const post of posts) buildPost(post, root);
+  for (const [file, html] of Object.entries(pages)) fs.writeFileSync(path.join(root, file), html, 'utf8');
+  buildSitemap(root, posts);
+  fs.writeFileSync(path.join(root, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE.origin}/sitemap.xml\n`, 'utf8');
+  console.log(`Done: ${posts.length} posts, homepage, archive and sitemap.`);
 }
 
-// --- Main ---
-function main() {
-  const root = path.resolve(__dirname, '..');
-
-  // Build blog posts
-  const postsDir = path.join(root, 'posts');
-  if (fs.existsSync(postsDir)) {
-    const postFiles = fs.readdirSync(postsDir).filter(f => f.endsWith('.md')).sort();
-    for (const f of postFiles) {
-      buildFile(path.join(postsDir, f), 'blog');
-    }
-  }
-
-  buildSitemap(root);
-  buildRobots(root);
-  console.log('Done.');
-}
-
-main();
+if (require.main === module) buildSite();
+module.exports = { buildSite, readPosts, renderMarkdown };

@@ -2,42 +2,40 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://zhangkai.me/</loc>
-    <lastmod>2026-04-30</lastmod>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://zhangkai.me/blog.html</loc>
-    <lastmod>2026-04-30</lastmod>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://zhangkai.me/posts/big-data-learning-path.html</loc>
-    <lastmod>2026-04-30</lastmod>
+    <lastmod>2026-10-23</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://zhangkai.me/posts/elasticsearch-large-wide-table.html</loc>
-    <lastmod>2026-04-30</lastmod>
+    <lastmod>2026-10-23</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://zhangkai.me/posts/from-dotnet-to-java.html</loc>
-    <lastmod>2026-04-30</lastmod>
+    <lastmod>2026-10-23</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://zhangkai.me/posts/java-backend-service-evolution.html</loc>
-    <lastmod>2026-04-30</lastmod>
+    <lastmod>2026-10-23</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://zhangkai.me/posts/production-incident-debugging.html</loc>
-    <lastmod>2026-04-30</lastmod>
+    <lastmod>2026-10-23</lastmod>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://zhangkai.me/posts/tcc-distributed-transaction-practice.html</loc>
-    <lastmod>2026-04-30</lastmod>
+    <lastmod>2026-10-23</lastmod>
     <priority>0.7</priority>
   </url>
 </urlset>

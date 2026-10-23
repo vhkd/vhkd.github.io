@@ -4,35 +4,40 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="canonical" href="https://zhangkai.me/posts/java-backend-service-evolution.html">
-  <meta name="description" content="写一些 Java 后端服务从功能可用走向长期稳定时更值得关注的问题，包括接口边界、异常处理、日志和系统复杂度。">
+  <meta name="description" content="用一个退款接口拆解参数校验、事务、外部调用和日志的职责，让维护建议落到可以检查的行为上。">
   <meta name="author" content="Zhang Kai">
   <meta name="robots" content="index,follow">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbf8f2">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111614">
   <meta property="og:site_name" content="Zhang Kai">
   <meta property="og:locale" content="zh_CN">
-  <meta property="og:title" content="从功能可用到服务稳定 | Zhang Kai">
-  <meta property="og:description" content="写一些 Java 后端服务从功能可用走向长期稳定时更值得关注的问题，包括接口边界、异常处理、日志和系统复杂度。">
+  <meta property="og:title" content="Java 服务维护：从一个退款接口检查边界 | Zhang Kai">
+  <meta property="og:description" content="用一个退款接口拆解参数校验、事务、外部调用和日志的职责，让维护建议落到可以检查的行为上。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://zhangkai.me/posts/java-backend-service-evolution.html">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="从功能可用到服务稳定 | Zhang Kai">
-  <meta name="twitter:description" content="写一些 Java 后端服务从功能可用走向长期稳定时更值得关注的问题，包括接口边界、异常处理、日志和系统复杂度。">
+  <meta name="twitter:title" content="Java 服务维护：从一个退款接口检查边界 | Zhang Kai">
+  <meta name="twitter:description" content="用一个退款接口拆解参数校验、事务、外部调用和日志的职责，让维护建议落到可以检查的行为上。">
   <meta property="article:published_time" content="2026-04-28">
+  <meta property="article:modified_time" content="2026-10-23">
   <meta property="article:section" content="Java 后端">
-  <title>从功能可用到服务稳定 | Zhang Kai</title>
+  <meta name="theme-color" content="#f6f1e8">
+  <title>Java 服务维护：从一个退款接口检查边界 | Zhang Kai</title>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "headline": "从功能可用到服务稳定：Java 后端项目里更值得关注的几个问题",
-  "description": "写一些 Java 后端服务从功能可用走向长期稳定时更值得关注的问题，包括接口边界、异常处理、日志和系统复杂度。",
+  "name": "Java 服务维护：从一个退款接口检查边界",
+  "description": "用一个退款接口拆解参数校验、事务、外部调用和日志的职责，让维护建议落到可以检查的行为上。",
   "url": "https://zhangkai.me/posts/java-backend-service-evolution.html",
-  "mainEntityOfPage": "https://zhangkai.me/posts/java-backend-service-evolution.html",
-  "datePublished": "2026-04-28",
-  "dateModified": "2026-04-28",
-  "articleSection": "Java 后端",
   "inLanguage": "zh-CN",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "Zhang Kai",
+    "url": "https://zhangkai.me"
+  },
+  "headline": "Java 服务维护：从一个退款接口检查边界",
+  "datePublished": "2026-04-28",
+  "dateModified": "2026-10-23",
+  "articleSection": "Java 后端",
   "author": {
     "@type": "Person",
     "name": "Zhang Kai",
@@ -41,254 +46,49 @@
       "https://github.com/vhkd"
     ]
   },
-  "isPartOf": {
-    "@type": "Blog",
-    "name": "Zhang Kai 技术博客",
-    "url": "https://zhangkai.me/blog.html"
-  }
+  "mainEntityOfPage": "https://zhangkai.me/posts/java-backend-service-evolution.html"
 }
   </script>
-  <script>
-    (function () {
-      var savedTheme = localStorage.getItem("theme-preference");
-      if (savedTheme === "light" || savedTheme === "dark") {
-        document.documentElement.setAttribute("data-theme", savedTheme);
-      }
-    })();
-  </script>
-  <style>
-    :root {
-      --bg: #fbf8f2;
-      --paper: rgba(255, 252, 246, 0.84);
-      --ink: #182018;
-      --muted: #667065;
-      --line: rgba(24, 32, 24, 0.12);
-      --accent: #9b5a3c;
-      --display: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-      --body: "Aptos", "Trebuchet MS", "PingFang SC", "Hiragino Sans GB", sans-serif;
-      --mono: "IBM Plex Mono", "Courier New", monospace;
-      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #111614;
-        --paper: rgba(26, 33, 29, 0.84);
-        --ink: #e8ece5;
-        --muted: #9ca79e;
-        --line: rgba(232, 236, 229, 0.12);
-        --accent: #d39a7b;
-        --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-      }
-    }
-    html[data-theme="light"] {
-      --bg: #fbf8f2;
-      --paper: rgba(255, 252, 246, 0.84);
-      --ink: #182018;
-      --muted: #667065;
-      --line: rgba(24, 32, 24, 0.12);
-      --accent: #9b5a3c;
-      --shadow: 0 18px 40px rgba(24, 32, 24, 0.08);
-    }
-    html[data-theme="dark"] {
-      --bg: #111614;
-      --paper: rgba(26, 33, 29, 0.84);
-      --ink: #e8ece5;
-      --muted: #9ca79e;
-      --line: rgba(232, 236, 229, 0.12);
-      --accent: #d39a7b;
-      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at 12% 8%, rgba(155, 90, 60, 0.1), transparent 20rem),
-        linear-gradient(180deg, color-mix(in srgb, var(--bg) 75%, white), var(--bg));
-      font-family: var(--body);
-      line-height: 1.8;
-    }
-    a { color: inherit; text-decoration: none; }
-    a:hover { color: var(--accent); }
-    .shell { width: min(760px, calc(100% - 32px)); margin: 0 auto; }
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 20px 0;
-      font-family: var(--mono);
-      font-size: 0.76rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    .topbar a {
-      padding: 0.65rem 0.85rem;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--paper) 84%, transparent);
-    }
-    .theme-toggle {
-      cursor: pointer;
-      color: inherit;
-      display: inline-grid;
-      place-items: center;
-      width: 40px;
-      height: 40px;
-      padding: 0;
-      border: 1px solid var(--line);
-      border-radius: 50%;
-      background: color-mix(in srgb, var(--paper) 84%, transparent);
-      font-size: 1rem;
-      line-height: 1;
-    }
-    article { padding: 28px 0 64px; }
-    .meta {
-      margin-bottom: 1rem;
-      color: var(--accent);
-      font-family: var(--mono);
-      font-size: 0.76rem;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-    h1, h2, p { margin-top: 0; }
-    h1 {
-      margin-bottom: 1rem;
-      font-family: var(--display);
-      font-size: clamp(2.8rem, 9vw, 5.4rem);
-      line-height: 0.92;
-      letter-spacing: -0.06em;
-    }
-    .lead {
-      margin-bottom: 2rem;
-      color: var(--muted);
-      font-size: 1.12rem;
-    }
-    h2 {
-      margin-top: 2.2rem;
-      margin-bottom: 0.75rem;
-      font-size: 1.6rem;
-      line-height: 1.15;
-    }
-    footer {
-      padding: 12px 0 40px;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-family: var(--mono);
-      font-size: 0.76rem;
-    }
-    @media (max-width: 720px) {
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.6rem;
-      }
 
-      h1 {
-        font-size: clamp(2rem, 8vw, 3.2rem);
-      }
-
-      article {
-        padding: 32px 0 48px;
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        scroll-behavior: auto !important;
-        transition-duration: 1ms !important;
-      }
-    }
-  </style>
+  <script src="../assets/theme.js"></script>
+  <link rel="stylesheet" href="../assets/site.css">
 </head>
-<body>
+<body class="site-post">
+  <a class="skip-link" href="#main">跳转到正文</a>
   <header class="shell topbar">
-    <a href="../blog.html">返回博客</a>
-    <div style="display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: flex-end;">
+    <a href="../blog.html">全部文章</a>
+    <div class="topbar-links">
+      <a href="../">主页</a>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="主题：自动" title="主题：自动">◐</button>
-      <a href="../">返回主页</a>
     </div>
   </header>
 
-  <main class="shell">
+  <main id="main" class="shell" tabindex="-1">
     <article>
-      <p class="meta">2026-04-28 · Java 后端</p>
-      <h1>从功能可用到服务稳定：Java 后端项目里更值得关注的几个问题</h1>
-      <p class="lead">
-        后端服务刚开始做的时候，目标通常都很直接，接口先通，业务先上线，只要能把当前需求接住，很多问题都会被暂时放过去。真正的分水岭往往出现在进入维护期之后。这个时候再看，会发现最麻烦的往往不是功能少了一点，而是系统出了问题不好查，需求一变就容易牵连一片，时间久了，大家连代码还能不能放心改都会开始犹豫。
-      </p>
+<p class="meta"><time datetime="2026-04-28">2026-04-28</time> · Java 后端 · 更新于 <time datetime="2026-10-23">2026-10-23</time></p>
+<h1 id="java-服务维护从一个退款接口检查边界">Java 服务维护：从一个退款接口检查边界</h1><p>“Controller 不要写太多逻辑”很难直接指导一次改动。一个更具体的问题是：同一笔退款被调用两次时，哪个位置负责挡住重复操作？渠道超时后，哪个位置决定这笔退款还能不能重试？</p>
+<p>以一个简化的退款接口为例，可以沿着下面几个边界检查。这里讨论结构，不涉及具体支付渠道的协议。</p>
+<h2 id="参数合法不等于允许退款">参数合法，不等于允许退款</h2><p>Controller 可以处理 JSON 解析、字段格式、身份认证结果和响应映射。金额是否超过可退额度、订单是否允许退款，则需要在业务层根据权威数据判断，并在真正占用额度时处理并发竞争。</p>
+<p>如果只在接口入口先查一次剩余额度，两个并发请求都可能通过。把查询搬进 Service 也不会自动修复问题：需要让校验与占用处于可保证一致性的操作中，例如本地事务里的条件更新，并检查受影响行数。</p>
+<p>退款请求还需要稳定的业务幂等键。相同键、相同请求返回已有处理结果；相同键、不同金额应拒绝，而不能被当成普通重试。</p>
+<h2 id="不要把网络调用的超时当成本地回滚">不要把网络调用的超时当成本地回滚</h2><p>一种危险的实现是：开启数据库事务、调用外部退款接口、收到超时后抛异常，最后期待所有事情都回到调用前。</p>
+<p>本地事务可以回滚数据库操作，却撤不回渠道可能已经受理的退款。网络超时只能说明结果未取得，不能证明执行失败。</p>
+<p>可以把“建立退款请求及待发送任务”先在本地事务中提交，再通过可靠任务调用渠道。渠道结果未知时保留处理中状态，继续查询；如何占用和释放资金，需要另行定义账务规则。这个拆分增加了中间状态，但让失败后从哪里恢复变得明确。</p>
+<h2 id="错误分类要对应调用方能做的事">错误分类要对应调用方能做的事</h2><p>余额不足、请求参数错误、数据库不可用和渠道结果未知，不应该全部返回同一个“操作失败”。它们对应的动作不同：修改请求、稍后再试、查询已有结果，或者等待人工处理。</p>
+<p>错误响应可以包含稳定的错误码和请求关联 ID。原始异常、SQL、支付凭据不应直接返回给调用方。服务端保留异常原因，并按错误类别决定告警、重试或业务拒绝。</p>
+<p>“可重试”也要有范围：读取超时和带幂等约定的退款重试，风险不同。没有明确幂等能力的写操作不能套用统一自动重试。</p>
+<h2 id="日志应回答一笔请求停在哪里">日志应回答一笔请求停在哪里</h2><p>比起在每个方法入口打印参数，更有用的是记录状态迁移及其依据：退款单号、渠道单号、旧状态、新状态、触发来源和失败类别。</p>
+<p>如果回调被当成重复通知跳过，日志里需要能看出依据；如果条件更新没有生效，需要知道当前状态是否已经被其他请求推进。只记录“调用成功”无法解释这些问题。</p>
+<p>关联 ID 适合出现在日志和追踪里，退款单号不适合作为监控指标标签，否则每笔订单都会制造新的指标序列。两种可观测数据需要分开设计。</p>
+<h2 id="改完以后验证失败路径">改完以后，验证失败路径</h2><p>正常退款成功只覆盖了最顺利的一条路径。维护这类接口时，还应验证重复请求、并发占用额度、渠道超时后反查成功、本地提交后任务未发送，以及回调与查询同时到达。</p>
+<p>这些场景能回答边界是否有效。只有把每种失败的恢复入口说明白，下一次修改接口的人才不必重新猜测哪些动作可以重做。</p>
 
-      <p>
-        我现在看一个 Java 后端项目，第一反应通常已经不是“这个功能做完没有”，而是它后面会不会越来越重。很多服务在最初几个月里其实都差不多，Controller 里多塞一点逻辑，异常先在本地兜住，日志先打出来再说，这些在当时都很正常，因为目标就是把事情交出去。但服务一旦真正跑起来，开始接外部系统，开始被多人维护，原来那些看上去问题不大的地方，就会慢慢变成排障和迭代时最费时间的部分。
-      </p>
-
-      <p>
-        比如接口边界这件事，刚开始如果没有太在意，后面就很容易一层一层往 Controller 里塞判断。参数校验、业务分支、返回格式、异常转换全混在一起，短期看是快，长期看就不太好动。每次改需求，最怕的不是改动量大，而是你不知道改完之后会不会把别的接口一起带出问题。很多时候，让服务真正稳定下来的不是某一个很复杂的设计，而是你愿不愿意把边界收一收，让每一层只做自己该做的事。
-      </p>
-
-      <p>
-        异常处理也是类似。早期项目里最常见的情况，就是业务逻辑先写通，等遇到报错了再补 `try-catch`。时间一长，错误处理自然就散得到处都是。接口返回不统一，日志信息也拼不齐，线上一旦出问题，就很容易出现“知道错了，但不知道为什么错”的情况。后来我越来越倾向于尽早把异常收敛起来，不是为了显得规范，而是为了给后面的排查留余地。系统错误和业务错误最好在语义上区分开，返回给调用方的内容也尽量稳定，这样问题真的来了，至少不会从最基础的判断开始浪费时间。
-      </p>
-
-      <p>
-        日志也是一样。很多人都知道日志重要，但真正写到项目里时，常常会走向两个极端，要么什么都打，要么什么都不打。前者最后会把日志变成噪声池，后者则是在需要它的时候完全帮不上忙。相比“日志够不够多”，我现在更在意的是它能不能把一次请求的链路串起来，关键参数有没有留下合理的上下文，外部依赖调用失败时有没有足够的信息让人继续往下查。日志不是为了摆在那里，而是为了出问题的时候，能把人从猜测里拉出来。
-      </p>
-
-      <p>
-        还有一些问题表面看和代码没那么直接，比如配置和发布。很多服务线上不稳定，未必是代码本身有多差，而是环境差异不透明、配置改动没被很好管理，或者上线过程本身就缺少确定性。参数命名是否清楚，默认值是不是合理，不同环境之间到底有哪些差异，这些细节平时不显眼，但很容易在系统规模上来以后反过来影响整个服务的可靠性。很多时候，一个后端项目的“稳”，并不是某段业务逻辑写得多漂亮，而是它在真实环境里经不经得住反复运行和反复修改。
-      </p>
-
-      <p>
-        做后端时间长一点之后，注意力会很自然地从“把功能做出来”转向“把系统做得更安静”。所谓安静，不是没有问题，而是出了问题之后你知道从哪里查，改一个地方不会让整个系统都紧张起来，接手的人也不用先猜半天作者当时怎么想的。对我来说，这种可维护性比很多表面上的复杂设计更有价值，这也是我现在看 Java 后端项目时更在意的部分。
-      </p>
     </article>
   </main>
 
   <footer class="shell">
     <span>Zhang Kai</span>
   </footer>
-  <script>
-    (function () {
-      var key = "theme-preference";
-      var button = document.getElementById("theme-toggle");
-      if (!button) return;
-      var labels = {
-        system: "主题：自动",
-        dark: "主题：夜间",
-        light: "主题：日间"
-      };
-      var icons = {
-        system: "◐",
-        dark: "☾",
-        light: "☼"
-      };
-      var order = ["system", "dark", "light"];
-      var current = localStorage.getItem(key) || "system";
 
-      function apply(theme) {
-        if (theme === "light" || theme === "dark") {
-          document.documentElement.setAttribute("data-theme", theme);
-        } else {
-          document.documentElement.removeAttribute("data-theme");
-        }
-        button.textContent = icons[theme];
-        button.setAttribute("aria-label", labels[theme]);
-        button.setAttribute("title", labels[theme]);
-      }
-
-      button.addEventListener("click", function () {
-        var index = order.indexOf(current);
-        current = order[(index + 1) % order.length];
-        if (current === "system") {
-          localStorage.removeItem(key);
-        } else {
-          localStorage.setItem(key, current);
-        }
-        apply(current);
-      });
-
-      apply(current);
-    })();
-  </script>
 </body>
 </html>

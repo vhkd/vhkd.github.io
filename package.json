@@ -2,7 +2,8 @@
   "name": "vhkd.github.io",
   "private": true,
   "scripts": {
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "test": "node --test"
   },
   "dependencies": {
     "marked": "^15.0.0"

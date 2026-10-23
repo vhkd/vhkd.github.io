@@ -1,36 +1,37 @@
-# CLAUDE.md
+# Repository guidance
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Project
 
-## Project Overview
+Chinese personal homepage and technical blog for Zhang Kai, served at https://zhangkai.me via GitHub Pages. The site uses static HTML, a small Node.js build script and the locked `marked` dependency. Do not introduce a frontend framework for routine edits.
 
-Static HTML personal homepage and blog for Zhang Kai (张凯), a Chinese backend engineer. Hosted on GitHub Pages at **zhangkai.me**. All content is in Chinese (zh-CN).
+## Sources and generated files
 
-## Architecture
+- All six articles are authored in `posts/*.md`, with single-line frontmatter fields. Edit Markdown, then run `npm run build`; `posts/*.html` are generated and checked in.
+- Frontmatter requires `title`, `date`, `category` and `description`. Optional `updated` records an actual content revision. Optional unique positive `featured` ranks select at most three homepage articles.
+- `index.html` and `blog.html` contain editable page structure. Preserve `posts:*:start/end` markers; article cards and archive JSON-LD inside them are generated from frontmatter.
+- `assets/site.css` and `assets/theme.js` are shared by every page. Keep the theme script before the stylesheet for early theme initialization.
+- `sitemap.xml` and `robots.txt` are generated. Do not use filesystem timestamps as content modification dates.
+- Remove both source Markdown and generated HTML when deleting an article, then rebuild.
 
-This is a zero-dependency, framework-free static site. There is **no build system, no package manager, no tests, no linter**.
+## Development
 
-- `index.html` — Landing page (hero, about, blog previews, contact)
-- `blog.html` — Blog archive listing
-- `posts/*.html` — Individual blog posts
+From the existing repository checkout, use Node.js >=20 and Python 3:
 
-Every page is fully self-contained with **inline CSS and inline JS** (no shared stylesheets or scripts). The theme toggle JS and CSS custom properties are copy-pasted across all files — this is intentional, not an oversight.
+```bash
+npm ci
+npm test
+npm run build
+python3 -m http.server 8000
+```
 
-## Theme System
+Cloud tasks already provide isolated checkouts. Do not create Git worktrees unless the user explicitly requests one.
 
-All pages share the same CSS custom property design system (`--bg`, `--paper`, `--ink`, `--muted`, `--accent`, etc.) with light/dark variants controlled by a `data-theme` attribute on `<html>`. The theme toggle persists to `localStorage`.
+Use the lockfile. Do not push or deploy merely to preview a change. CI runs tests and builds, then commits generated pages when relevant files change.
 
-## Design Tokens
+## Content and design
 
-- Max-width: `860px` (homepage) / `760px` (blog/posts)
-- Mobile breakpoint: `720px`
-- Accent: terracotta/burnt orange (`#9b5a3c` light / `#d39a7b` dark)
-- Background: warm beige (`#f6f1e8` light / `#111614` dark)
-- Border-radius: 22–24px (pill-shaped cards/buttons)
+Preserve the author's stated background and personal details. Do not invent project experience, logs, incidents or performance metrics. Distinguish illustrative scenarios from verified experience; specify technical assumptions and limits.
 
-## Working with This Repo
+Retain the warm beige, terracotta and dark green palette, readable Chinese line heights, restrained article lists and clear primary reading link. Max widths are 860px for the homepage and 760px for archive/articles. Verify keyboard focus, mobile layout and both themes after visual changes.
 
-- **Preview:** Open `index.html` directly in a browser, or `python3 -m http.server`
-- **Deploy:** Push to `main` — GitHub Pages serves automatically via `CNAME`
-- **Adding a post:** Create a new `posts/<slug>.html` following the existing post structure, then add a card to both `index.html` (blog section) and `blog.html`
-- **No generated/bundled output** — edit HTML directly
+See README.md for authoring and validation details.

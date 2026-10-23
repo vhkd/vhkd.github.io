@@ -8,7 +8,9 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'posts/*.md'
-      - 'scripts/build.js'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'assets/**'
 
 jobs:
   build:
@@ -24,13 +26,15 @@ jobs:
 
       - run: npm ci
 
-      - run: node scripts/build.js
+      - run: npm test
+
+      - run: npm run build
 
       - name: Commit built HTML
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f posts/*.html sitemap.xml robots.txt
+          git add -f index.html blog.html posts/*.html sitemap.xml robots.txt
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
