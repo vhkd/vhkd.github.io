@@ -4,29 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="canonical" href="https://zhangkai.me/posts/production-incident-debugging.html">
-  <meta name="description" content="区分渠道退款结果、内部状态和用户到账情况，沿着回调与反查定位状态不同步的问题。">
+  <meta name="description" content="用两条交错执行的 UPDATE，还原成功状态被覆盖的过程。回调链路和同步响应，谁有权推进退款单？">
   <meta name="author" content="Zhang Kai">
   <meta name="robots" content="index,follow">
   <meta property="og:site_name" content="Zhang Kai">
   <meta property="og:locale" content="zh_CN">
-  <meta property="og:title" content="退款状态一直在处理中，先查哪一段 | Zhang Kai">
-  <meta property="og:description" content="区分渠道退款结果、内部状态和用户到账情况，沿着回调与反查定位状态不同步的问题。">
+  <meta property="og:title" content="回调已经到了，退款单为什么还在处理中 | Zhang Kai">
+  <meta property="og:description" content="用两条交错执行的 UPDATE，还原成功状态被覆盖的过程。回调链路和同步响应，谁有权推进退款单？">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://zhangkai.me/posts/production-incident-debugging.html">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="退款状态一直在处理中，先查哪一段 | Zhang Kai">
-  <meta name="twitter:description" content="区分渠道退款结果、内部状态和用户到账情况，沿着回调与反查定位状态不同步的问题。">
+  <meta name="twitter:title" content="回调已经到了，退款单为什么还在处理中 | Zhang Kai">
+  <meta name="twitter:description" content="用两条交错执行的 UPDATE，还原成功状态被覆盖的过程。回调链路和同步响应，谁有权推进退款单？">
   <meta property="article:published_time" content="2026-01-10">
   <meta property="article:modified_time" content="2026-10-23">
   <meta property="article:section" content="Java 后端">
   <meta name="theme-color" content="#f6f1e8">
-  <title>退款状态一直在处理中，先查哪一段 | Zhang Kai</title>
+  <title>回调已经到了，退款单为什么还在处理中 | Zhang Kai</title>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "name": "退款状态一直在处理中，先查哪一段",
-  "description": "区分渠道退款结果、内部状态和用户到账情况，沿着回调与反查定位状态不同步的问题。",
+  "name": "回调已经到了，退款单为什么还在处理中",
+  "description": "用两条交错执行的 UPDATE，还原成功状态被覆盖的过程。回调链路和同步响应，谁有权推进退款单？",
   "url": "https://zhangkai.me/posts/production-incident-debugging.html",
   "inLanguage": "zh-CN",
   "isPartOf": {
@@ -34,7 +34,7 @@
     "name": "Zhang Kai",
     "url": "https://zhangkai.me"
   },
-  "headline": "退款状态一直在处理中，先查哪一段",
+  "headline": "回调已经到了，退款单为什么还在处理中",
   "datePublished": "2026-01-10",
   "dateModified": "2026-10-23",
   "articleSection": "Java 后端",
@@ -66,34 +66,45 @@
   <main id="main" class="shell" tabindex="-1">
     <article>
 <p class="meta"><time datetime="2026-01-10">2026-01-10</time> · Java 后端 · 更新于 <time datetime="2026-10-23">2026-10-23</time></p>
-<h1 id="退款状态一直在处理中先查哪一段">退款状态一直在处理中，先查哪一段</h1><p>退款页面显示“处理中”，客服收到的反馈是“钱还没到”。这两句话还不能说明退款失败：可能渠道尚未处理完，也可能渠道已成功、内部状态没有跟上，还可能退款结果已经确认，但到账仍有延迟。</p>
-<p>下面以“渠道查询成功，内部状态仍在处理中”为例整理排查路径。状态码和时序均用于说明问题，不对应某个支付渠道的接口约定。</p>
-<h2 id="先把三种状态分开">先把三种状态分开</h2><p>排查时至少需要三个独立证据：</p>
-<ul>
-<li><strong>内部退款单状态</strong>：我们的系统记录到了哪一步。</li>
-<li><strong>渠道退款结果</strong>：渠道是否受理、是否已经给出最终结果。</li>
-<li><strong>用户到账情况</strong>：钱是否按原路或约定路径返回，到账时间是否仍在渠道承诺范围内。</li>
-</ul>
-<p>内部状态滞留，不能直接计为资金退款失败。渠道返回成功，也不能凭这一条记录解释所有未到账投诉。应先用同一退款单号、渠道单号、金额和原交易关联关系确认查的是同一笔退款，再按渠道的到账规则继续核对。</p>
-<p>指标也要分开看：渠道明确失败率、超过处理时限的内部订单占比、回调验签或解析失败数，各自对应不同的问题。没有统计窗口、分母和状态定义，一个“退款失败率”很容易把排查带偏。</p>
-<h2 id="用一笔订单还原时序">用一笔订单还原时序</h2><p>先查退款请求、渠道响应、回调接收、状态变更这四个位置的日志。日志需要能用退款单号串起来，同时保留渠道单号和请求关联 ID；支付凭据和个人信息应脱敏。</p>
-<p>对应的排查时序是：</p>
-<ol>
-<li>提交退款后，渠道同步响应为“已受理”，内部记录为处理中。</li>
-<li>后续收到回调，但回调没有推动状态更新。</li>
-<li>使用渠道单号反查，得到明确的退款成功结果。</li>
-</ol>
-<p>到这里，可以把范围缩到“回调接收后至状态更新之间”。还不能直接认定是格式变化：验签失败、重复通知判断错误、本地事务回滚和并发状态更新失败，都可能产生相同现象。</p>
-<h2 id="回调到了为什么没有更新">回调到了，为什么没有更新</h2><p>假设脱敏后的通知里，状态值是数字 <code>2</code>，而解析代码只接受字符串 <code>&quot;SUCCESS&quot;</code>。这能解释状态未更新，但前提是渠道文档或渠道方确认这两个值都表示成功。</p>
-<p>不能看到一个新枚举值就猜它的含义。处理顺序应该是：先按渠道协议验签，再校验订单、金额及原交易关系，最后做状态映射。未知值保留异常记录并告警，不能默认成功，也不能因为本地无法解析就把退款标为失败。</p>
-<p>确认映射后，兼容逻辑应有明确的协议版本和测试样本。对回调的应答、重试次数和重试间隔，也应遵循该渠道的约定。</p>
-<h2 id="修复状态不重复发起退款">修复状态，不重复发起退款</h2><p>反查确认成功后，要修复的是本地记录及尚未完成的后续动作。此时重新提交退款，可能造成重复资金操作。</p>
-<p>回调和反查可能同时更新同一笔订单，因此状态迁移需要条件更新或版本控制。成功状态的落库与待发送事件应在同一本地事务内完成，例如通过 outbox 保存后续记账任务；下游再按业务键幂等消费。这样即使两个入口都拿到了成功结果，也不会重复执行后置业务。</p>
-<p>对仍未取得确定结果的订单，可以进入人工处理队列，同时保留后续查询和审计能力。“需人工处理”是工作流状态，不能当作资金失败终态，更不能据此释放已经可能被渠道扣走的资金。</p>
-<p>查询截止时间和频率要按渠道能力配置，并设置退避和限流。一个统一写死的“48 小时”不能覆盖所有支付方式。</p>
-<h2 id="如何验证修复有效">如何验证修复有效</h2><p>至少覆盖这些情况：旧版与新版成功通知、未知状态、验签失败、回调重复、回调与反查并发、状态已提交但后续消息尚未发送。</p>
-<p>固定样本的解析测试只能防止已知格式回归。要发现渠道的新变更，还需要协议变更通知、联调验证，以及未知状态和回调失败的线上监控。</p>
-<p>最后分别检查滞留订单是否收敛、是否出现重复后置动作、渠道结果与内部结果是否一致。只有完成这些核对，才能说明状态修复有效；用户到账问题仍应按到账证据单独结案。</p>
+<h1 id="回调已经到了退款单为什么还在处理中">回调已经到了，退款单为什么还在处理中</h1><p>一笔退款，渠道查询是成功，本地却一直是处理中。查回调日志，也确实收到了成功通知。</p>
+<p>这时继续查“回调为什么没来”就有点绕远了。还有一种可能：状态已经被改成成功，随后又被别的代码改了回去。</p>
+<p>不妨先把这个可能性缩成一张只有两个字段的表。下面是可以在 SQLite 中执行的小例子，用来推演更新顺序：</p>
+<pre><code class="language-sql">CREATE TABLE refund (
+    id TEXT PRIMARY KEY,
+    status TEXT NOT NULL
+);
+INSERT INTO refund VALUES (&#39;r-001&#39;, &#39;INIT&#39;);</code></pre>
+<p>提交退款的线程在收到“已受理”响应后，执行：</p>
+<pre><code class="language-sql">UPDATE refund SET status = &#39;PROCESSING&#39; WHERE id = &#39;r-001&#39;;</code></pre>
+<p>回调处理器收到成功通知后，执行：</p>
+<pre><code class="language-sql">UPDATE refund SET status = &#39;SUCCESS&#39; WHERE id = &#39;r-001&#39;;</code></pre>
+<p>两段代码单独看都很直白。可渠道的同步响应和异步通知走的是两条路，没有谁保证本地一定先处理同步响应。</p>
+<h2 id="把两条-update-换个顺序">把两条 UPDATE 换个顺序</h2><p>设想提交线程等待 HTTP 响应时，回调先到了：</p>
+<pre><code class="language-sql">-- 回调先处理成功通知
+UPDATE refund SET status = &#39;SUCCESS&#39; WHERE id = &#39;r-001&#39;;
+
+-- 提交线程稍后拿到受理响应
+UPDATE refund SET status = &#39;PROCESSING&#39; WHERE id = &#39;r-001&#39;;
+
+SELECT status FROM refund WHERE id = &#39;r-001&#39;;
+-- PROCESSING</code></pre>
+<p>数据库没有丢更新，也没有报错。它忠实执行了两条合法语句，只是第二条语句把业务上不该发生的倒退写进去了。</p>
+<p>如果日志只有“收到成功通知”和“更新成功”，甚至能把人引到数据库是不是有问题这个方向。这里的“更新成功”只说明当时 SQL 执行成功，没有说明后来还发生过什么。</p>
+<p>所以排查这类问题时，我更想看到一笔退款的状态变更记录：原状态、目标状态、触发入口、时间和关联 ID。重点是找最后一次写入，而不是只确认回调代码执行过。</p>
+<h2 id="受理响应只能推动-init">受理响应只能推动 INIT</h2><p>对于这个简化模型，可以让提交线程只做 <code>INIT → PROCESSING</code>：</p>
+<pre><code class="language-sql">UPDATE refund
+SET status = &#39;PROCESSING&#39;
+WHERE id = &#39;r-001&#39; AND status = &#39;INIT&#39;;</code></pre>
+<p>成功通知则允许从 <code>INIT</code> 或 <code>PROCESSING</code> 推进：</p>
+<pre><code class="language-sql">UPDATE refund
+SET status = &#39;SUCCESS&#39;
+WHERE id = &#39;r-001&#39; AND status IN (&#39;INIT&#39;, &#39;PROCESSING&#39;);</code></pre>
+<p>这样回调先到时，受理响应的条件更新会影响零行，本地的成功状态留得住。顺序反过来也成立：受理响应先改为处理中，回调随后推进到成功。</p>
+<p>这两条 SQL 的前提是成功通知已经过验签、订单与金额核对，且渠道对这个成功结果有确定的协议定义。示例没有展开失败和撤销等状态；真实退款单还要把那些迁移逐条列清楚。</p>
+<h2 id="零行更新不能一律当异常">零行更新不能一律当异常</h2><p>提交线程影响零行，可能是回调已经推进了状态。成功回调影响零行，可能是重复通知，也可能当前记录已经处在一个不应接受成功通知的状态。需要读取已有状态再区分，不能统一吞掉，也不能一律重试。</p>
+<p>如果推进成功还要发送后置事件，判断也应基于这次迁移有没有发生。把状态更新和 outbox 事件插入放在同一本地事务中，只有更新命中时才插入事件；重复通知不再产生第二个成功事件。下游仍要做自己的幂等处理。</p>
+<p>这能避免一种常见的半修复：状态确实不倒退了，每次重复回调却还在重复发记账任务。</p>
+<p>还有一条容易混在一起：本地退款单的状态修好了，不代表用户到账问题也随之解释完了。渠道成功、本地成功、用户实际到账，依旧是三份不同的证据。这篇推演解决的是中间那份记录为什么可能写错，不是在给未到账投诉下结论。</p>
 
     </article>
   </main>

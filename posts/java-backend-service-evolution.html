@@ -4,29 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="canonical" href="https://zhangkai.me/posts/java-backend-service-evolution.html">
-  <meta name="description" content="用一个退款接口拆解参数校验、事务、外部调用和日志的职责，让维护建议落到可以检查的行为上。">
+  <meta name="description" content="两个请求都查到可退 100 元，然后各退 70 元。把这个顺序放进 SQL，看事务和条件更新分别能管住什么。">
   <meta name="author" content="Zhang Kai">
   <meta name="robots" content="index,follow">
   <meta property="og:site_name" content="Zhang Kai">
   <meta property="og:locale" content="zh_CN">
-  <meta property="og:title" content="Java 服务维护：从一个退款接口检查边界 | Zhang Kai">
-  <meta property="og:description" content="用一个退款接口拆解参数校验、事务、外部调用和日志的职责，让维护建议落到可以检查的行为上。">
+  <meta property="og:title" content="退款前查过额度了，为什么还是会超退 | Zhang Kai">
+  <meta property="og:description" content="两个请求都查到可退 100 元，然后各退 70 元。把这个顺序放进 SQL，看事务和条件更新分别能管住什么。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://zhangkai.me/posts/java-backend-service-evolution.html">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Java 服务维护：从一个退款接口检查边界 | Zhang Kai">
-  <meta name="twitter:description" content="用一个退款接口拆解参数校验、事务、外部调用和日志的职责，让维护建议落到可以检查的行为上。">
+  <meta name="twitter:title" content="退款前查过额度了，为什么还是会超退 | Zhang Kai">
+  <meta name="twitter:description" content="两个请求都查到可退 100 元，然后各退 70 元。把这个顺序放进 SQL，看事务和条件更新分别能管住什么。">
   <meta property="article:published_time" content="2026-04-28">
   <meta property="article:modified_time" content="2026-10-23">
   <meta property="article:section" content="Java 后端">
   <meta name="theme-color" content="#f6f1e8">
-  <title>Java 服务维护：从一个退款接口检查边界 | Zhang Kai</title>
+  <title>退款前查过额度了，为什么还是会超退 | Zhang Kai</title>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "name": "Java 服务维护：从一个退款接口检查边界",
-  "description": "用一个退款接口拆解参数校验、事务、外部调用和日志的职责，让维护建议落到可以检查的行为上。",
+  "name": "退款前查过额度了，为什么还是会超退",
+  "description": "两个请求都查到可退 100 元，然后各退 70 元。把这个顺序放进 SQL，看事务和条件更新分别能管住什么。",
   "url": "https://zhangkai.me/posts/java-backend-service-evolution.html",
   "inLanguage": "zh-CN",
   "isPartOf": {
@@ -34,7 +34,7 @@
     "name": "Zhang Kai",
     "url": "https://zhangkai.me"
   },
-  "headline": "Java 服务维护：从一个退款接口检查边界",
+  "headline": "退款前查过额度了，为什么还是会超退",
   "datePublished": "2026-04-28",
   "dateModified": "2026-10-23",
   "articleSection": "Java 后端",
@@ -66,22 +66,59 @@
   <main id="main" class="shell" tabindex="-1">
     <article>
 <p class="meta"><time datetime="2026-04-28">2026-04-28</time> · Java 后端 · 更新于 <time datetime="2026-10-23">2026-10-23</time></p>
-<h1 id="java-服务维护从一个退款接口检查边界">Java 服务维护：从一个退款接口检查边界</h1><p>“Controller 不要写太多逻辑”很难直接指导一次改动。一个更具体的问题是：同一笔退款被调用两次时，哪个位置负责挡住重复操作？渠道超时后，哪个位置决定这笔退款还能不能重试？</p>
-<p>以一个简化的退款接口为例，可以沿着下面几个边界检查。这里讨论结构，不涉及具体支付渠道的协议。</p>
-<h2 id="参数合法不等于允许退款">参数合法，不等于允许退款</h2><p>Controller 可以处理 JSON 解析、字段格式、身份认证结果和响应映射。金额是否超过可退额度、订单是否允许退款，则需要在业务层根据权威数据判断，并在真正占用额度时处理并发竞争。</p>
-<p>如果只在接口入口先查一次剩余额度，两个并发请求都可能通过。把查询搬进 Service 也不会自动修复问题：需要让校验与占用处于可保证一致性的操作中，例如本地事务里的条件更新，并检查受影响行数。</p>
-<p>退款请求还需要稳定的业务幂等键。相同键、相同请求返回已有处理结果；相同键、不同金额应拒绝，而不能被当成普通重试。</p>
-<h2 id="不要把网络调用的超时当成本地回滚">不要把网络调用的超时当成本地回滚</h2><p>一种危险的实现是：开启数据库事务、调用外部退款接口、收到超时后抛异常，最后期待所有事情都回到调用前。</p>
-<p>本地事务可以回滚数据库操作，却撤不回渠道可能已经受理的退款。网络超时只能说明结果未取得，不能证明执行失败。</p>
-<p>可以把“建立退款请求及待发送任务”先在本地事务中提交，再通过可靠任务调用渠道。渠道结果未知时保留处理中状态，继续查询；如何占用和释放资金，需要另行定义账务规则。这个拆分增加了中间状态，但让失败后从哪里恢复变得明确。</p>
-<h2 id="错误分类要对应调用方能做的事">错误分类要对应调用方能做的事</h2><p>余额不足、请求参数错误、数据库不可用和渠道结果未知，不应该全部返回同一个“操作失败”。它们对应的动作不同：修改请求、稍后再试、查询已有结果，或者等待人工处理。</p>
-<p>错误响应可以包含稳定的错误码和请求关联 ID。原始异常、SQL、支付凭据不应直接返回给调用方。服务端保留异常原因，并按错误类别决定告警、重试或业务拒绝。</p>
-<p>“可重试”也要有范围：读取超时和带幂等约定的退款重试，风险不同。没有明确幂等能力的写操作不能套用统一自动重试。</p>
-<h2 id="日志应回答一笔请求停在哪里">日志应回答一笔请求停在哪里</h2><p>比起在每个方法入口打印参数，更有用的是记录状态迁移及其依据：退款单号、渠道单号、旧状态、新状态、触发来源和失败类别。</p>
-<p>如果回调被当成重复通知跳过，日志里需要能看出依据；如果条件更新没有生效，需要知道当前状态是否已经被其他请求推进。只记录“调用成功”无法解释这些问题。</p>
-<p>关联 ID 适合出现在日志和追踪里，退款单号不适合作为监控指标标签，否则每笔订单都会制造新的指标序列。两种可观测数据需要分开设计。</p>
-<h2 id="改完以后验证失败路径">改完以后，验证失败路径</h2><p>正常退款成功只覆盖了最顺利的一条路径。维护这类接口时，还应验证重复请求、并发占用额度、渠道超时后反查成功、本地提交后任务未发送，以及回调与查询同时到达。</p>
-<p>这些场景能回答边界是否有效。只有把每种失败的恢复入口说明白，下一次修改接口的人才不必重新猜测哪些动作可以重做。</p>
+<h1 id="退款前查过额度了为什么还是会超退">退款前查过额度了，为什么还是会超退</h1><p>退款接口里有一段很容易写出来的逻辑：查订单，算剩余可退金额，够就建立退款单，再扣掉额度。</p>
+<pre><code class="language-java">long available = budgetRepository.findAvailable(orderId);
+if (available &lt; amount) {
+    throw new InsufficientRefundBudgetException();
+}
+refundRepository.create(refundId, orderId, amount);
+budgetRepository.deduct(orderId, amount);</code></pre>
+<p>这段省略了事务和异常处理，但即使先补一个 <code>@Transactional</code>，也不能马上说它安全了。在允许两个事务同时读到同一旧值的隔离级别下，两个请求都能通过前面的判断。</p>
+<p>比如可退 100 元，A 和 B 各申请退 70 元：</p>
+<pre><code class="language-text">A 查询：还剩 100，通过
+B 查询：还剩 100，通过
+A 建立退款单，扣 70
+B 建立退款单，再扣 70</code></pre>
+<p>把查询从 Controller 搬到 Service，或者把条件封装成 <code>canRefund()</code>，都不会改变这个交错顺序。</p>
+<h2 id="真正需要抢的是那次额度变更">真正需要抢的是那次额度变更</h2><p>先不用 Java，在 SQLite 里建一张简化的额度表。金额单位是分：</p>
+<pre><code class="language-sql">CREATE TABLE refund_budget (
+    order_id TEXT PRIMARY KEY,
+    available_cents INTEGER NOT NULL
+);
+INSERT INTO refund_budget VALUES (&#39;o-001&#39;, 10000);</code></pre>
+<p>不附带条件地扣两次，结果就是负数：</p>
+<pre><code class="language-sql">UPDATE refund_budget
+SET available_cents = available_cents - 7000
+WHERE order_id = &#39;o-001&#39;;
+
+UPDATE refund_budget
+SET available_cents = available_cents - 7000
+WHERE order_id = &#39;o-001&#39;;
+
+SELECT available_cents FROM refund_budget;
+-- -4000</code></pre>
+<p>把表复原，再把余额判断放进更新语句：</p>
+<pre><code class="language-sql">UPDATE refund_budget SET available_cents = 10000;
+
+UPDATE refund_budget
+SET available_cents = available_cents - 7000
+WHERE order_id = &#39;o-001&#39; AND available_cents &gt;= 7000;
+SELECT changes();
+-- 1
+
+UPDATE refund_budget
+SET available_cents = available_cents - 7000
+WHERE order_id = &#39;o-001&#39; AND available_cents &gt;= 7000;
+SELECT changes();
+-- 0</code></pre>
+<p><code>changes()</code> 是 SQLite 查看上一条语句影响行数的函数。Java 代码里应取数据库驱动返回的更新行数。第二次更新已经扣不动了，应用需要把这个零行结果当成占用失败，而不能继续往下执行。</p>
+<p>数据库可以用行锁、条件更新或更强的事务隔离解决竞争。这里用条件更新，是因为这个约束能直接写成一行 SQL；如果改用 <code>SELECT ... FOR UPDATE</code>，同样要保证查询和扣减处于同一个事务里。</p>
+<h2 id="扣到了额度退款单却没建成怎么办">扣到了额度，退款单却没建成怎么办</h2><p>假如更新额度成功，插入退款单却因为唯一键冲突失败，额度不能凭空少掉。扣减和建立退款单仍要放在同一本地事务中。</p>
+<p>我更愿意先尝试插入带唯一业务键的退款请求，再执行条件扣减。插入失败就退出这次事务；扣减零行也回滚，连同刚插入的请求一起撤掉。这里的退款请求应带上订单、金额、币种等内容，处理重复键时才能判断是不是同一份请求。</p>
+<p>对于真正的重复请求，读取已有退款单并返回它的状态即可。同一个幂等键却换了金额，就应报冲突，不能只因为“键已存在”就返回成功。</p>
+<p>这也解释了为什么幂等和余额并发控制需要分开做。两个不同的退款单号可以同时退同一订单，它们不会触发请求唯一键冲突，却会竞争同一笔剩余额度。</p>
+<h2 id="到这里本地事务才管完自己的事">到这里，本地事务才管完自己的事</h2><p>占用额度和建立请求成功以后，还没有真正把钱退给用户。渠道调用不能靠这笔数据库事务一起回滚。可以在同一个事务里留下待发送任务，再按渠道的幂等协议执行退款；结果不明时继续查询，不能马上释放额度让另一笔退款再用一次。</p>
+<p>这篇只把问题收在“建立请求时不超占额度”这一段。最有价值的测试也很短：初始额度 100 元，用两个不同请求各占 70 元，最后只能有一笔占用成功；再重放成功的那个请求，余额应保持 30 元。相比正常调用十次，这个顺序更容易暴露那段查询到底有没有守住边界。</p>
 
     </article>
   </main>

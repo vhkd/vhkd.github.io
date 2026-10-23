@@ -4,29 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="canonical" href="https://zhangkai.me/posts/from-dotnet-to-java.html">
-  <meta name="description" content="从异步调用、依赖注入生命周期和事务代理三个具体差异，检查技术栈切换时容易带过去的旧习惯。">
+  <meta name="description" content="AddScoped 和 Spring 默认单例之间，差的不只是一个注册方法。用一次导出请求看共享字段如何串数据。">
   <meta name="author" content="Zhang Kai">
   <meta name="robots" content="index,follow">
   <meta property="og:site_name" content="Zhang Kai">
   <meta property="og:locale" content="zh_CN">
-  <meta property="og:title" content="从 .NET 到 Java，先检查三个旧习惯 | Zhang Kai">
-  <meta property="og:description" content="从异步调用、依赖注入生命周期和事务代理三个具体差异，检查技术栈切换时容易带过去的旧习惯。">
+  <meta property="og:title" content="从 .NET 到 Java：Service 里这个字段能不能留 | Zhang Kai">
+  <meta property="og:description" content="AddScoped 和 Spring 默认单例之间，差的不只是一个注册方法。用一次导出请求看共享字段如何串数据。">
   <meta property="og:type" content="article">
   <meta property="og:url" content="https://zhangkai.me/posts/from-dotnet-to-java.html">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="从 .NET 到 Java，先检查三个旧习惯 | Zhang Kai">
-  <meta name="twitter:description" content="从异步调用、依赖注入生命周期和事务代理三个具体差异，检查技术栈切换时容易带过去的旧习惯。">
+  <meta name="twitter:title" content="从 .NET 到 Java：Service 里这个字段能不能留 | Zhang Kai">
+  <meta name="twitter:description" content="AddScoped 和 Spring 默认单例之间，差的不只是一个注册方法。用一次导出请求看共享字段如何串数据。">
   <meta property="article:published_time" content="2024-03-07">
   <meta property="article:modified_time" content="2026-10-23">
   <meta property="article:section" content="后端随笔">
   <meta name="theme-color" content="#f6f1e8">
-  <title>从 .NET 到 Java，先检查三个旧习惯 | Zhang Kai</title>
+  <title>从 .NET 到 Java：Service 里这个字段能不能留 | Zhang Kai</title>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "name": "从 .NET 到 Java，先检查三个旧习惯",
-  "description": "从异步调用、依赖注入生命周期和事务代理三个具体差异，检查技术栈切换时容易带过去的旧习惯。",
+  "name": "从 .NET 到 Java：Service 里这个字段能不能留",
+  "description": "AddScoped 和 Spring 默认单例之间，差的不只是一个注册方法。用一次导出请求看共享字段如何串数据。",
   "url": "https://zhangkai.me/posts/from-dotnet-to-java.html",
   "inLanguage": "zh-CN",
   "isPartOf": {
@@ -34,7 +34,7 @@
     "name": "Zhang Kai",
     "url": "https://zhangkai.me"
   },
-  "headline": "从 .NET 到 Java，先检查三个旧习惯",
+  "headline": "从 .NET 到 Java：Service 里这个字段能不能留",
   "datePublished": "2024-03-07",
   "dateModified": "2026-10-23",
   "articleSection": "后端随笔",
@@ -66,20 +66,41 @@
   <main id="main" class="shell" tabindex="-1">
     <article>
 <p class="meta"><time datetime="2024-03-07">2024-03-07</time> · 后端随笔 · 更新于 <time datetime="2026-10-23">2026-10-23</time></p>
-<h1 id="从-net-到-java先检查三个旧习惯">从 .NET 到 Java，先检查三个旧习惯</h1><p>从 C# .NET 转到 Java，语法通常不是最费时间的部分。更容易出错的是：一个熟悉的写法，在新框架里虽然能编译，运行语义却不同。</p>
-<p>下面选三个适合在接手项目时检查的地方。对比以 ASP.NET Core 和使用 Spring 的 Java 服务为背景，不代表两种语言的所有框架。</p>
-<h2 id="有异步返回值不等于调用没有阻塞">有异步返回值，不等于调用没有阻塞</h2><p>在 ASP.NET Core 中，使用真正支持异步 I/O 的 API 并 <code>await</code>，等待数据库或 HTTP 响应期间通常不需要一直占用处理该请求的线程。把同步阻塞调用包进 <code>Task.Run</code>，则仍然需要线程来执行它，不能因此获得相同的资源使用方式。</p>
-<p>转到常见的 Spring MVC 项目后，JDBC 和阻塞式 HTTP 客户端仍会占用当前线程。返回 <code>CompletableFuture</code> 也不能自动改变底层调用：如果只是把 JDBC 放到线程池，数据库连接和工作线程仍然是约束。</p>
-<p>排查接口延迟时，我会先确认客户端是否阻塞、线程池上限是多少、连接池是否耗尽，再看要不要改异步接口。采用 WebFlux 或虚拟线程的项目，需要按实际模型重新判断；虚拟线程同样不会增加数据库的连接容量。</p>
-<h2 id="依赖注入要看生命周期">依赖注入要看生命周期</h2><p>ASP.NET Core 里常见的 <code>AddScoped</code> 服务，通常按请求创建；Spring 的普通 Bean 默认是容器内单例。把原来放在请求级对象上的可变字段照搬进 Spring <code>@Service</code>，可能让多个请求共享状态。</p>
-<p>例如，服务上有一个 <code>currentUserId</code> 字段，入口先设置它，后面的业务方法再读取。请求级实例中这已经是隐式依赖，放进默认单例后还会产生串请求风险。</p>
-<p>更稳妥的方式是把用户身份作为明确参数传入，或者通过框架提供的请求上下文访问。异步任务还要单独考虑上下文传播，不能假设请求线程上的信息会自动出现在另一个线程里。</p>
-<p>检查项目时，除了看注册方式，也要搜索服务类的可变实例字段。单例本身没有问题，共享可变的请求状态才是需要处理的部分。</p>
-<h2 id="事务注解有代理边界">事务注解有代理边界</h2><p>Spring 默认的代理式事务中，同一个对象通过 <code>this</code> 调用自己的 <code>@Transactional</code> 方法，不会经过事务代理。如果外层没有事务，内层注解不会仅因为方法被调用就创建事务。</p>
-<p>这类问题看源码不一定明显：注解在，数据库更新也成功，但中途失败后没有按预期回滚。可以把需要事务的业务边界放到独立 Bean，由外部调用经过代理；同时确认异常类型和回滚规则，而不是只检查有没有注解。</p>
-<p>这个例子也说明，不能简单把 <code>@Transactional</code> 对应成某个 .NET 写法就结束。需要继续确认事务由谁开启、哪些数据库操作加入了同一个事务，以及跨异步边界后还剩下什么保证。</p>
-<h2 id="接手项目时实际查什么">接手项目时实际查什么</h2><p>先选一条包含数据库更新和外部调用的短链路，顺着入口查依赖生命周期、线程切换、连接获取和事务边界。用一个会失败的请求验证回滚，再用并发请求验证是否共享了请求状态。</p>
-<p>这比先把所有注解背一遍更容易发现迁移中的问题。已经积累的接口设计和排障经验仍然有用，但每个“这里应该和以前一样”的判断，都值得用运行结果确认一次。</p>
+<h1 id="从-net-到-javaservice-里这个字段能不能留">从 .NET 到 Java：Service 里这个字段能不能留</h1><p>从 C# 转到 Java，有些代码几乎可以照着写：构造器注入、调用 Repository、拼一个返回结果。类还是那个类，方法也还是那个方法，所以容易顺手把字段一起搬过去。</p>
+<p>但这个字段可能已经换了主人。</p>
+<p>比如一个导出服务，把当前用户 ID 暂存在实例上。下面省略依赖声明，只看用户 ID 在哪里被读写：</p>
+<pre><code class="language-java">@Service
+public class ExportService {
+    private String currentUserId;
+
+    public void export(String userId) {
+        currentUserId = userId;
+        var orders = orderRepository.findByUserId(currentUserId);
+        fileStorage.save(currentUserId, orders);
+    }
+}</code></pre>
+<p>单个请求跑起来没问题。查询拿到了订单，文件也存到了对应用户下面。危险的地方在于，<code>findByUserId</code> 要等数据库，这段等待给了另一个请求修改字段的机会。</p>
+<h2 id="两个请求共用了哪个对象">两个请求共用了哪个对象</h2><p>在 ASP.NET Core 中，如果服务是这样注册的：</p>
+<pre><code class="language-csharp">builder.Services.AddScoped&lt;ExportService&gt;();</code></pre>
+<p>正常的 HTTP 请求作用域内，同一个请求复用一个实例，不同请求各拿各的实例。把当前用户存在实例字段里，虽然增加了方法之间的隐式依赖，但不会仅仅因为两个 HTTP 请求同时到来就串在一起。</p>
+<p>Spring 的 <code>@Service</code> 默认是容器内单例。两个请求进入 <code>export</code>，操作的是同一个 <code>currentUserId</code>。可以按下面的顺序读一遍代码：</p>
+<pre><code class="language-text">请求 A：currentUserId = &quot;alice&quot;
+请求 A：开始查询 alice 的订单，等待数据库
+请求 B：currentUserId = &quot;bob&quot;
+请求 A：查询返回，把订单保存到 currentUserId 对应的目录</code></pre>
+<p>最后一行读到的是 <code>bob</code>，订单却是 Alice 的。这里没有复杂的锁竞争算法，甚至不需要两个线程在同一条语句上撞到一起。只要字段在查询前后被读了两次，就有可能读出两个值。</p>
+<p><code>volatile</code> 也救不了这个写法。它能约束字段的可见性，不能让“赋值、查询、保存”变成不可打断的一整个操作。这个例子里，A 看见 B 的新值恰好就是问题。</p>
+<h2 id="用户-id-本来就不需要存在服务上">用户 ID 本来就不需要存在服务上</h2><p>我会直接让这个值留在参数和局部变量里：</p>
+<pre><code class="language-java">public void export(String userId) {
+    var orders = orderRepository.findByUserId(userId);
+    fileStorage.save(userId, orders);
+}</code></pre>
+<p>两个调用各自有自己的参数。等数据库再久，也不会因为另一个调用进来就改变用户 ID。服务实例仍然可以共享 Repository 和存储客户端，前提是这些依赖本身适合并发使用。</p>
+<p>给整个方法加 <code>synchronized</code> 能挡住这个例子中的交错，但所有用户的导出也被排成了一条队。仅仅为了留住一个不必存在的字段，就把数据库等待时间一起锁进去，我觉得不划算。</p>
+<p>改成 request scope 也是一个选项，不过它改变了对象的生命周期，还会涉及代理和后台任务中没有请求上下文的问题。这里只是传一个用户 ID，参数已经够用了。</p>
+<p>反过来，C# 的 scoped 也不是“线程安全”的同义词。同一个请求中用 <code>Task.WhenAll</code> 并发调用这个服务，仍可能同时读写同一实例。把状态移回局部变量的好处，在两边都成立。</p>
+<p>现在看到 Service 的实例字段，我会多停一下：这个值是服务长期持有的依赖，还是某一次调用留下的东西？从 .NET 换到 Java，这个问题比类名和注解怎么对应更值得先问。</p>
+<p>关于默认生命周期，可以对照 <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection#service-lifetimes">ASP.NET Core 的服务生命周期说明</a> 和 <a href="https://docs.spring.io/spring-framework/reference/core/beans/factory-scopes.html">Spring Bean scopes</a>。</p>
 
     </article>
   </main>

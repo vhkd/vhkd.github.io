@@ -38,42 +38,42 @@
   "blogPost": [
     {
       "@type": "BlogPosting",
-      "headline": "Java 服务维护：从一个退款接口检查边界",
+      "headline": "退款前查过额度了，为什么还是会超退",
       "url": "https://zhangkai.me/posts/java-backend-service-evolution.html",
       "datePublished": "2026-04-28",
       "dateModified": "2026-10-23"
     },
     {
       "@type": "BlogPosting",
-      "headline": "退款状态一直在处理中，先查哪一段",
+      "headline": "回调已经到了，退款单为什么还在处理中",
       "url": "https://zhangkai.me/posts/production-incident-debugging.html",
       "datePublished": "2026-01-10",
       "dateModified": "2026-10-23"
     },
     {
       "@type": "BlogPosting",
-      "headline": "订单查询的 ES 大宽表：同步、乱序与补偿",
+      "headline": "每次都查最新数据，为什么 ES 里还是旧订单",
       "url": "https://zhangkai.me/posts/elasticsearch-large-wide-table.html",
       "datePublished": "2025-11-20",
       "dateModified": "2026-10-23"
     },
     {
       "@type": "BlogPosting",
-      "headline": "退款链路中的 TCC：先划清事务边界",
+      "headline": "TCC 的 Cancel 查不到记录，能直接返回吗",
       "url": "https://zhangkai.me/posts/tcc-distributed-transaction-practice.html",
       "datePublished": "2025-08-15",
       "dateModified": "2026-10-23"
     },
     {
       "@type": "BlogPosting",
-      "headline": "从 .NET 到 Java，先检查三个旧习惯",
+      "headline": "从 .NET 到 Java：Service 里这个字段能不能留",
       "url": "https://zhangkai.me/posts/from-dotnet-to-java.html",
       "datePublished": "2024-03-07",
       "dateModified": "2026-10-23"
     },
     {
       "@type": "BlogPosting",
-      "headline": "从订单日报入手，理解一条数据链路",
+      "headline": "一张订单日报，先算对“昨天”",
       "url": "https://zhangkai.me/posts/big-data-learning-path.html",
       "datePublished": "2023-06-15",
       "dateModified": "2026-10-23"
@@ -108,33 +108,33 @@
       <!-- posts:archive:start -->
         <a class="post" href="posts/java-backend-service-evolution.html">
           <p class="meta"><time datetime="2026-04-28">2026-04-28</time> · Java 后端</p>
-          <h2>Java 服务维护：从一个退款接口检查边界</h2>
-          <p>用一个退款接口拆解参数校验、事务、外部调用和日志的职责，让维护建议落到可以检查的行为上。</p>
+          <h2>退款前查过额度了，为什么还是会超退</h2>
+          <p>两个请求都查到可退 100 元，然后各退 70 元。把这个顺序放进 SQL，看事务和条件更新分别能管住什么。</p>
         </a>
         <a class="post" href="posts/production-incident-debugging.html">
           <p class="meta"><time datetime="2026-01-10">2026-01-10</time> · Java 后端</p>
-          <h2>退款状态一直在处理中，先查哪一段</h2>
-          <p>区分渠道退款结果、内部状态和用户到账情况，沿着回调与反查定位状态不同步的问题。</p>
+          <h2>回调已经到了，退款单为什么还在处理中</h2>
+          <p>用两条交错执行的 UPDATE，还原成功状态被覆盖的过程。回调链路和同步响应，谁有权推进退款单？</p>
         </a>
         <a class="post" href="posts/elasticsearch-large-wide-table.html">
           <p class="meta"><time datetime="2025-11-20">2025-11-20</time> · 大数据</p>
-          <h2>订单查询的 ES 大宽表：同步、乱序与补偿</h2>
-          <p>以订单查询为例，讨论 Elasticsearch 读模型的更新时序、版本控制、索引拆分和对账边界。</p>
+          <h2>每次都查最新数据，为什么 ES 里还是旧订单</h2>
+          <p>旧快照不一定读得晚，它可能只是写得晚。从两个消费者的交错写入，讨论 Elasticsearch 外部版本的用法和限制。</p>
         </a>
         <a class="post" href="posts/tcc-distributed-transaction-practice.html">
           <p class="meta"><time datetime="2025-08-15">2025-08-15</time> · 分布式</p>
-          <h2>退款链路中的 TCC：先划清事务边界</h2>
-          <p>从内部账户预留出发，说明 TCC 的状态迁移、空回滚、幂等，以及它与外部退款渠道之间的边界。</p>
+          <h2>TCC 的 Cancel 查不到记录，能直接返回吗</h2>
+          <p>Cancel 比 Try 先到时，返回成功还不够。用一条取消记录拦住迟到的 Try，再看唯一键为什么也在协议里面。</p>
         </a>
         <a class="post" href="posts/from-dotnet-to-java.html">
           <p class="meta"><time datetime="2024-03-07">2024-03-07</time> · 后端随笔</p>
-          <h2>从 .NET 到 Java，先检查三个旧习惯</h2>
-          <p>从异步调用、依赖注入生命周期和事务代理三个具体差异，检查技术栈切换时容易带过去的旧习惯。</p>
+          <h2>从 .NET 到 Java：Service 里这个字段能不能留</h2>
+          <p>AddScoped 和 Spring 默认单例之间，差的不只是一个注册方法。用一次导出请求看共享字段如何串数据。</p>
         </a>
         <a class="post" href="posts/big-data-learning-path.html">
           <p class="meta"><time datetime="2023-06-15">2023-06-15</time> · 大数据</p>
-          <h2>从订单日报入手，理解一条数据链路</h2>
-          <p>以订单日报和实时看板为例，理解采集、口径、事件时间、迟到数据与重跑，而不是先记组件清单。</p>
+          <h2>一张订单日报，先算对“昨天”</h2>
+          <p>同一组三笔订单，按创建时间算是 50 元，按支付时间算是 40 元。从这 10 元差额开始写订单日报。</p>
         </a>
       <!-- posts:archive:end -->
     </section>

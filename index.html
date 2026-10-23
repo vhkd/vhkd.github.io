@@ -83,18 +83,18 @@
         <!-- posts:featured:start -->
         <a class="post-card" href="posts/from-dotnet-to-java.html">
           <p class="post-meta"><time datetime="2024-03-07">2024-03-07</time> · 后端随笔</p>
-          <h3>从 .NET 到 Java，先检查三个旧习惯</h3>
-          <p>从异步调用、依赖注入生命周期和事务代理三个具体差异，检查技术栈切换时容易带过去的旧习惯。</p>
+          <h3>从 .NET 到 Java：Service 里这个字段能不能留</h3>
+          <p>AddScoped 和 Spring 默认单例之间，差的不只是一个注册方法。用一次导出请求看共享字段如何串数据。</p>
         </a>
         <a class="post-card" href="posts/production-incident-debugging.html">
           <p class="post-meta"><time datetime="2026-01-10">2026-01-10</time> · Java 后端</p>
-          <h3>退款状态一直在处理中，先查哪一段</h3>
-          <p>区分渠道退款结果、内部状态和用户到账情况，沿着回调与反查定位状态不同步的问题。</p>
+          <h3>回调已经到了，退款单为什么还在处理中</h3>
+          <p>用两条交错执行的 UPDATE，还原成功状态被覆盖的过程。回调链路和同步响应，谁有权推进退款单？</p>
         </a>
         <a class="post-card" href="posts/elasticsearch-large-wide-table.html">
           <p class="post-meta"><time datetime="2025-11-20">2025-11-20</time> · 大数据</p>
-          <h3>订单查询的 ES 大宽表：同步、乱序与补偿</h3>
-          <p>以订单查询为例，讨论 Elasticsearch 读模型的更新时序、版本控制、索引拆分和对账边界。</p>
+          <h3>每次都查最新数据，为什么 ES 里还是旧订单</h3>
+          <p>旧快照不一定读得晚，它可能只是写得晚。从两个消费者的交错写入，讨论 Elasticsearch 外部版本的用法和限制。</p>
         </a>
         <!-- posts:featured:end -->
       </div>

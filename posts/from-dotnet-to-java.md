@@ -1,46 +1,77 @@
 ---
-title: 从 .NET 到 Java，先检查三个旧习惯
+title: 从 .NET 到 Java：Service 里这个字段能不能留
 date: 2024-03-07
 updated: 2026-10-23
 featured: 1
 category: 后端随笔
-description: 从异步调用、依赖注入生命周期和事务代理三个具体差异，检查技术栈切换时容易带过去的旧习惯。
+description: AddScoped 和 Spring 默认单例之间，差的不只是一个注册方法。用一次导出请求看共享字段如何串数据。
 ---
 
-# 从 .NET 到 Java，先检查三个旧习惯
+# 从 .NET 到 Java：Service 里这个字段能不能留
 
-从 C# .NET 转到 Java，语法通常不是最费时间的部分。更容易出错的是：一个熟悉的写法，在新框架里虽然能编译，运行语义却不同。
+从 C# 转到 Java，有些代码几乎可以照着写：构造器注入、调用 Repository、拼一个返回结果。类还是那个类，方法也还是那个方法，所以容易顺手把字段一起搬过去。
 
-下面选三个适合在接手项目时检查的地方。对比以 ASP.NET Core 和使用 Spring 的 Java 服务为背景，不代表两种语言的所有框架。
+但这个字段可能已经换了主人。
 
-## 有异步返回值，不等于调用没有阻塞
+比如一个导出服务，把当前用户 ID 暂存在实例上。下面省略依赖声明，只看用户 ID 在哪里被读写：
 
-在 ASP.NET Core 中，使用真正支持异步 I/O 的 API 并 `await`，等待数据库或 HTTP 响应期间通常不需要一直占用处理该请求的线程。把同步阻塞调用包进 `Task.Run`，则仍然需要线程来执行它，不能因此获得相同的资源使用方式。
+```java
+@Service
+public class ExportService {
+    private String currentUserId;
 
-转到常见的 Spring MVC 项目后，JDBC 和阻塞式 HTTP 客户端仍会占用当前线程。返回 `CompletableFuture` 也不能自动改变底层调用：如果只是把 JDBC 放到线程池，数据库连接和工作线程仍然是约束。
+    public void export(String userId) {
+        currentUserId = userId;
+        var orders = orderRepository.findByUserId(currentUserId);
+        fileStorage.save(currentUserId, orders);
+    }
+}
+```
 
-排查接口延迟时，我会先确认客户端是否阻塞、线程池上限是多少、连接池是否耗尽，再看要不要改异步接口。采用 WebFlux 或虚拟线程的项目，需要按实际模型重新判断；虚拟线程同样不会增加数据库的连接容量。
+单个请求跑起来没问题。查询拿到了订单，文件也存到了对应用户下面。危险的地方在于，`findByUserId` 要等数据库，这段等待给了另一个请求修改字段的机会。
 
-## 依赖注入要看生命周期
+## 两个请求共用了哪个对象
 
-ASP.NET Core 里常见的 `AddScoped` 服务，通常按请求创建；Spring 的普通 Bean 默认是容器内单例。把原来放在请求级对象上的可变字段照搬进 Spring `@Service`，可能让多个请求共享状态。
+在 ASP.NET Core 中，如果服务是这样注册的：
 
-例如，服务上有一个 `currentUserId` 字段，入口先设置它，后面的业务方法再读取。请求级实例中这已经是隐式依赖，放进默认单例后还会产生串请求风险。
+```csharp
+builder.Services.AddScoped<ExportService>();
+```
 
-更稳妥的方式是把用户身份作为明确参数传入，或者通过框架提供的请求上下文访问。异步任务还要单独考虑上下文传播，不能假设请求线程上的信息会自动出现在另一个线程里。
+正常的 HTTP 请求作用域内，同一个请求复用一个实例，不同请求各拿各的实例。把当前用户存在实例字段里，虽然增加了方法之间的隐式依赖，但不会仅仅因为两个 HTTP 请求同时到来就串在一起。
 
-检查项目时，除了看注册方式，也要搜索服务类的可变实例字段。单例本身没有问题，共享可变的请求状态才是需要处理的部分。
+Spring 的 `@Service` 默认是容器内单例。两个请求进入 `export`，操作的是同一个 `currentUserId`。可以按下面的顺序读一遍代码：
 
-## 事务注解有代理边界
+```text
+请求 A：currentUserId = "alice"
+请求 A：开始查询 alice 的订单，等待数据库
+请求 B：currentUserId = "bob"
+请求 A：查询返回，把订单保存到 currentUserId 对应的目录
+```
 
-Spring 默认的代理式事务中，同一个对象通过 `this` 调用自己的 `@Transactional` 方法，不会经过事务代理。如果外层没有事务，内层注解不会仅因为方法被调用就创建事务。
+最后一行读到的是 `bob`，订单却是 Alice 的。这里没有复杂的锁竞争算法，甚至不需要两个线程在同一条语句上撞到一起。只要字段在查询前后被读了两次，就有可能读出两个值。
 
-这类问题看源码不一定明显：注解在，数据库更新也成功，但中途失败后没有按预期回滚。可以把需要事务的业务边界放到独立 Bean，由外部调用经过代理；同时确认异常类型和回滚规则，而不是只检查有没有注解。
+`volatile` 也救不了这个写法。它能约束字段的可见性，不能让“赋值、查询、保存”变成不可打断的一整个操作。这个例子里，A 看见 B 的新值恰好就是问题。
 
-这个例子也说明，不能简单把 `@Transactional` 对应成某个 .NET 写法就结束。需要继续确认事务由谁开启、哪些数据库操作加入了同一个事务，以及跨异步边界后还剩下什么保证。
+## 用户 ID 本来就不需要存在服务上
 
-## 接手项目时实际查什么
+我会直接让这个值留在参数和局部变量里：
 
-先选一条包含数据库更新和外部调用的短链路，顺着入口查依赖生命周期、线程切换、连接获取和事务边界。用一个会失败的请求验证回滚，再用并发请求验证是否共享了请求状态。
+```java
+public void export(String userId) {
+    var orders = orderRepository.findByUserId(userId);
+    fileStorage.save(userId, orders);
+}
+```
 
-这比先把所有注解背一遍更容易发现迁移中的问题。已经积累的接口设计和排障经验仍然有用，但每个“这里应该和以前一样”的判断，都值得用运行结果确认一次。
+两个调用各自有自己的参数。等数据库再久，也不会因为另一个调用进来就改变用户 ID。服务实例仍然可以共享 Repository 和存储客户端，前提是这些依赖本身适合并发使用。
+
+给整个方法加 `synchronized` 能挡住这个例子中的交错，但所有用户的导出也被排成了一条队。仅仅为了留住一个不必存在的字段，就把数据库等待时间一起锁进去，我觉得不划算。
+
+改成 request scope 也是一个选项，不过它改变了对象的生命周期，还会涉及代理和后台任务中没有请求上下文的问题。这里只是传一个用户 ID，参数已经够用了。
+
+反过来，C# 的 scoped 也不是“线程安全”的同义词。同一个请求中用 `Task.WhenAll` 并发调用这个服务，仍可能同时读写同一实例。把状态移回局部变量的好处，在两边都成立。
+
+现在看到 Service 的实例字段，我会多停一下：这个值是服务长期持有的依赖，还是某一次调用留下的东西？从 .NET 换到 Java，这个问题比类名和注解怎么对应更值得先问。
+
+关于默认生命周期，可以对照 [ASP.NET Core 的服务生命周期说明](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection#service-lifetimes) 和 [Spring Bean scopes](https://docs.spring.io/spring-framework/reference/core/beans/factory-scopes.html)。
